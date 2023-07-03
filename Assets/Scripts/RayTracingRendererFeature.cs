@@ -9,17 +9,17 @@ public class RayTracingRendererFeature : ScriptableRendererFeature
     [Serializable]
     public class Settings
     {
-
+        [Range(0, 8)]
+        public int MaxBounces;
     }
-    public RenderPassEvent renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
-    public Shader rayTracingShader;
+    public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRendering;
     public Settings settings = new Settings();
 
     private RayTracingPass m_RenderPass;
 
     public override void Create()
     {
-        m_RenderPass = new RayTracingPass(name);
+        m_RenderPass = new RayTracingPass(name, settings);
         m_RenderPass.renderPassEvent = renderPassEvent;
     }
 
@@ -34,25 +34,34 @@ public class RayTracingRendererFeature : ScriptableRendererFeature
         private Material material;
 
         private RenderTargetIdentifier sourceID;
-        private RenderTargetHandle resultID;
+        private RenderTargetHandle result;
+        private RenderTargetHandle prevFrame;
+        private RenderTargetHandle currentFrame;
+
+        private int copyTex = Shader.PropertyToID("_CopyTex");
 
         // Buffers
-        ComputeBuffer sphereBuffer;
+        private ComputeBuffer sphereBuffer;
+        private ComputeBuffer cubeBuffer;
 
-        private int sourceTexShaderId = Shader.PropertyToID("_ResultTex");
+        private int frameID;
 
         enum Pass
         {
+            Accumulate,
             Copy,
             RayTracing
         }
 
-        public RayTracingPass(string name)
+        public RayTracingPass(string name, Settings settings)
         {
             Debug.Log("Created renderer feature: " + name);
             this.name = name;
             this.material = CoreUtils.CreateEngineMaterial("Hidden/RayTracing");
             material.hideFlags = HideFlags.HideAndDontSave;
+            material.SetInt("_MaxBounces", settings.MaxBounces);
+
+            frameID = 0;
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -63,12 +72,21 @@ public class RayTracingRendererFeature : ScriptableRendererFeature
 
             sourceID = renderingData.cameraData.renderer.cameraColorTarget;
 
-            cmd.GetTemporaryRT(resultID.id, desc, FilterMode.Point);
+            result.Init("_ResultTex");
+            currentFrame.Init("_CurrentFrame");
+            prevFrame.Init("_PrevFrame");
+
+            desc.colorFormat = RenderTextureFormat.ARGBFloat;
+            cmd.GetTemporaryRT(result.id, desc, FilterMode.Point);
+            cmd.GetTemporaryRT(currentFrame.id, desc, FilterMode.Point);
+            cmd.GetTemporaryRT(prevFrame.id, desc, FilterMode.Point);
         }
 
         public override void OnCameraCleanup(CommandBuffer cmd)
         {
-            cmd.ReleaseTemporaryRT(resultID.id);
+            cmd.ReleaseTemporaryRT(result.id);
+            cmd.ReleaseTemporaryRT(currentFrame.id);
+            cmd.ReleaseTemporaryRT(prevFrame.id);
         }
 
         void Draw(CommandBuffer cmd, RenderTargetIdentifier depthSource, RenderTargetIdentifier destination, Pass pass)
@@ -87,6 +105,8 @@ public class RayTracingRendererFeature : ScriptableRendererFeature
             // Send data to shader
             material.SetVector("_ViewParams", new Vector3(planeWidth, planeHeight, focusDistance));
             material.SetMatrix("_CamLocalToWorldMatrix", cam.transform.localToWorldMatrix);
+
+            material.SetInt("_FrameID", frameID);
         }
 
         void CreateSpheres()
@@ -101,6 +121,7 @@ public class RayTracingRendererFeature : ScriptableRendererFeature
                 {
                     position = sphereObjects[i].transform.position,
                     radius = sphereObjects[i].transform.localScale.x * 0.5f,
+                    material = sphereObjects[i].material
                 };
             }
 
@@ -108,6 +129,28 @@ public class RayTracingRendererFeature : ScriptableRendererFeature
             CreateStructuredBuffer(ref sphereBuffer, spheres);
             material.SetBuffer("_Spheres", sphereBuffer);
             material.SetInt("_NumSpheres", sphereObjects.Length);
+        }
+
+        private void CreateCubes()
+        {
+            // Create sphere data from the sphere objects in the scene
+            RayTracedCube[] cubeObjects = FindObjectsOfType<RayTracedCube>();
+            Cube[] cubes = new Cube[cubeObjects.Length];
+
+            for (int i = 0; i < cubeObjects.Length; i++)
+            {
+                cubes[i] = new Cube()
+                {
+                    position = cubeObjects[i].transform.position,
+                    scale = cubeObjects[i].transform.localScale,
+                    material = cubeObjects[i].material
+                };
+            }
+
+            // Create buffer containing all sphere data, and send it to the shader
+            CreateStructuredBuffer(ref cubeBuffer, cubes);
+            material.SetBuffer("_Cubes", cubeBuffer);
+            material.SetInt("_NumCubes", cubeObjects.Length);
         }
 
         // Create a compute buffer containing the given data (Note: data must be blittable)
@@ -131,6 +174,7 @@ public class RayTracingRendererFeature : ScriptableRendererFeature
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CreateSpheres();
+            CreateCubes();
 
             CommandBuffer cmd = CommandBufferPool.Get(name);
 
@@ -138,19 +182,34 @@ public class RayTracingRendererFeature : ScriptableRendererFeature
             {
                 cmd.BeginSample("Ray Tracing");
 
-                // Clear outline texture
-                cmd.SetRenderTarget(resultID.id, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
-                cmd.ClearRenderTarget(RTClearFlags.All, Color.clear, 0, 255);
+                bool isSceneCam = Camera.current && Camera.current.name == "SceneCamera";
 
-                // Draw to result texture
-                Draw(cmd, sourceID, resultID.id, Pass.RayTracing);
+                if (isSceneCam)
+                {
+                    Draw(cmd, sourceID, sourceID, Pass.RayTracing);
+                }
+                else
+                {
+                    // Create copy of previous frame
+                    cmd.SetGlobalTexture(copyTex, currentFrame.id);
+                    Draw(cmd, sourceID, prevFrame.id, Pass.Copy);
 
-                cmd.SetGlobalTexture(sourceTexShaderId, resultID.id);
+                    // Clear result texture
+                    cmd.SetRenderTarget(result.id, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
+                    cmd.ClearRenderTarget(RTClearFlags.All, Color.clear, 0, 255);
 
-                //Debug.Log("Write to texture " + sourceID);
+                    // Ray trace to result texture
+                    Draw(cmd, sourceID, result.id, Pass.RayTracing);
 
-                // Copy from result texture to camera source
-                Draw(cmd, sourceID, sourceID, Pass.Copy);
+                    // Accumulate
+                    Draw(cmd, sourceID, currentFrame.id, Pass.Accumulate);
+
+                    // Copy from current frame texture to camera source
+                    cmd.SetGlobalTexture(copyTex, currentFrame.id);
+                    Draw(cmd, sourceID, sourceID, Pass.Copy);
+
+                    frameID++;
+                }
 
                 cmd.EndSample("Ray Tracing");
             }
