@@ -171,6 +171,12 @@ public class RayTracingRendererFeature : ScriptableRendererFeature
             buffer.SetData(data);
         }
 
+        private void ReleaseBuffers()
+        {
+            sphereBuffer.Release();
+            cubeBuffer.Release();
+        }
+
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CreateSpheres();
@@ -216,6 +222,8 @@ public class RayTracingRendererFeature : ScriptableRendererFeature
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
+
+            ReleaseBuffers();
         }
     }
 }

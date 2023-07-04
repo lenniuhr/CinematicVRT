@@ -12,8 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9ba061e49dc190c489f9c033f61da725, type: 3}
   m_Name: Volume Rendering
   m_EditorClassIdentifier: 
-  m_Active: 0
+  m_Active: 1
   renderPassEvent: 1000
+  settings:
+    StepSize: 0.001
+    NormalOffset: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -85,7 +88,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 24b5deebe6517a94396e5ff6fe0de629, type: 3}
   m_Name: Ray Tracing
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   renderPassEvent: 1000
   settings:
     MaxBounces: 8

@@ -1,4 +1,4 @@
-Shader "Hidden/VolumeRendering"
+Shader "Hidden/GaussianBlur"
 {
     Properties
     {
@@ -15,13 +15,13 @@ Shader "Hidden/VolumeRendering"
 
         Pass
         {
-            Name "VolumeRendering"
+            Name "GaussianBlur"
 
             HLSLPROGRAM
             #pragma vertex DefaultVertex
-            #pragma fragment VolumeRenderingFragment
+            #pragma fragment GaussianBlurFragment
             #include "Assets/Shaders/DefaultVertex.hlsl"
-            #include "Assets/Shaders/VolumeRendering.hlsl"
+            #include "Assets/Shaders/GaussianBlur.hlsl"
             ENDHLSL
         }
     }

@@ -9,7 +9,10 @@ public class VolumeRenderingRendererFeature : ScriptableRendererFeature
     [Serializable]
     public class Settings
     {
-
+        [Range(0.0001f, 0.1f)]
+        public float StepSize = 0.004f;
+        [Range(0, 2)]
+        public float NormalOffset = 1f;
     }
     public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRendering;
     public Settings settings = new Settings();
@@ -53,6 +56,8 @@ public class VolumeRenderingRendererFeature : ScriptableRendererFeature
                 material.SetVector("_VolumePosition", volumeBB.transform.position);
                 material.SetVector("_VolumeScale", volumeBB.transform.localScale);
             }
+            material.SetFloat("_StepSize", settings.StepSize);
+            material.SetFloat("_NormalOffset", settings.NormalOffset);
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
