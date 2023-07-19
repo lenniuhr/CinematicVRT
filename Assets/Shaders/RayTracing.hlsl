@@ -246,7 +246,7 @@ float4 RayTracingFragment(Varyings IN) : SV_TARGET
 
 	Ray ray;
 	ray.origin = _WorldSpaceCameraPos;
-	ray.dir = normalize(viewPoint - ray.origin);
+    ray.dir = normalize(viewPoint - ray.origin);
     
     float3 color = Trace(ray, rngState);
     

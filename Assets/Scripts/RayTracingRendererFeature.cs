@@ -223,7 +223,7 @@ public class RayTracingRendererFeature : ScriptableRendererFeature
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
 
-            ReleaseBuffers();
+            //ReleaseBuffers();
         }
     }
 }

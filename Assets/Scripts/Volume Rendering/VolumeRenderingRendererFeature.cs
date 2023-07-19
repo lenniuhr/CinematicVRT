@@ -13,6 +13,8 @@ public class VolumeRenderingRendererFeature : ScriptableRendererFeature
         public float StepSize = 0.004f;
         [Range(0, 2)]
         public float NormalOffset = 1f;
+        [Range(0, 1)]
+        public float Threshold = 0.2f;
     }
     public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRendering;
     public Settings settings = new Settings();
@@ -58,6 +60,7 @@ public class VolumeRenderingRendererFeature : ScriptableRendererFeature
             }
             material.SetFloat("_StepSize", settings.StepSize);
             material.SetFloat("_NormalOffset", settings.NormalOffset);
+            material.SetFloat("_Threshold", settings.Threshold);
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)

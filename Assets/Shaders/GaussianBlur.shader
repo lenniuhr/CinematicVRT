@@ -2,6 +2,7 @@ Shader "Hidden/GaussianBlur"
 {
     Properties
     {
+        _MainTex("Main Texture", 2D) = "white" {}
         _VolumeTex("Volume Texture", 3D) = "white" {}
         _VolumePosition("Volume Position", Vector) = (0, 0, 0)
         _VolumeScale("Volume Scale", Vector) = (0, 0, 0)

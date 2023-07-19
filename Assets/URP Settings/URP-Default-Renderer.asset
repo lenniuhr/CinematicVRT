@@ -17,6 +17,27 @@ MonoBehaviour:
   settings:
     StepSize: 0.001
     NormalOffset: 1
+    Threshold: 0.18
+--- !u!114 &-3347501342411450359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5e7fe8a1209d764090aceb669033764, type: 3}
+  m_Name: BlurImageRendererFeature
+  m_EditorClassIdentifier: 
+  m_Active: 0
+  renderPassEvent: 1000
+  settings:
+    Texture: {fileID: 2800000, guid: 531d45b54fe476b4b89e655ee32a2e15, type: 3}
+    FilterMode: 0
+    KernelRadius: 2
+    Sigma: 2
+    SigmaR: 0.3
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -35,7 +56,8 @@ MonoBehaviour:
   m_RendererFeatures:
   - {fileID: 3674167480162463381}
   - {fileID: -3618375333725541457}
-  m_RendererFeatureMap: 952e604cdb43fd32afeb4011cef2c8cd
+  - {fileID: -3347501342411450359}
+  m_RendererFeatureMap: 952e604cdb43fd32afeb4011cef2c8cd09186cd043498bd1
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 0}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
@@ -91,4 +113,4 @@ MonoBehaviour:
   m_Active: 0
   renderPassEvent: 1000
   settings:
-    MaxBounces: 8
+    MaxBounces: 7

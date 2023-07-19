@@ -7,12 +7,16 @@
 float3 _ViewParams;
 float4x4 _CamLocalToWorldMatrix;
 
+
+TEXTURE2D(_TransferTex);  SAMPLER(sampler_TransferTex);
+
 TEXTURE3D(_VolumeTex);  SAMPLER(sampler_VolumeTex);
 float3 _VolumePosition;
 float3 _VolumeScale;
 
 float _StepSize;
 float _NormalOffset;
+float _Threshold;
 
 struct Ray
 {
@@ -125,14 +129,14 @@ float3 ComputeNormal(float3 uv)
     float3 frontUV = uv + float3(0, 0, offsetZ);
     float3 backUV = uv + float3(0, 0, -offsetZ);
     
-    float value = SAMPLE_TEXTURE3D(_VolumeTex, sampler_VolumeTex, uv).r;
+    float value = SampleDensity(uv);
     
-    float rightValue = SAMPLE_TEXTURE3D(_VolumeTex, sampler_VolumeTex, rightUV).r;
-    float leftValue = SAMPLE_TEXTURE3D(_VolumeTex, sampler_VolumeTex, leftUV).r;
-    float topValue = SAMPLE_TEXTURE3D(_VolumeTex, sampler_VolumeTex, topUV).r;
-    float bottomValue = SAMPLE_TEXTURE3D(_VolumeTex, sampler_VolumeTex, bottomUV).r;
-    float frontValue = SAMPLE_TEXTURE3D(_VolumeTex, sampler_VolumeTex, frontUV).r;
-    float backValue = SAMPLE_TEXTURE3D(_VolumeTex, sampler_VolumeTex, backUV).r;
+    float rightValue = SampleDensity(rightUV);
+    float leftValue = SampleDensity(leftUV);
+    float topValue = SampleDensity(topUV);
+    float bottomValue = SampleDensity(bottomUV);
+    float frontValue = SampleDensity(frontUV);
+    float backValue = SampleDensity(backUV);
     
     /*float value = GetBlurredDensity(uv);
     
@@ -169,7 +173,7 @@ float4 RayMarchVolume(float3 position, float3 direction)
         
         float density = SampleDensity(uv);
         
-        if (density > 0.2)
+        if (density > _Threshold)
         {
             float3 normal = ComputeNormal(uv);
             return float4(normal, 1);
@@ -183,6 +187,38 @@ float4 RayMarchVolume(float3 position, float3 direction)
     return 0;
 }
 
+float4 RayMarch(float3 position, float3 direction)
+{
+    float3 step = direction * _StepSize;
+    float4 output = 0;
+    
+    [loop]
+    for (int i = 0; i < 720; i++)
+    {
+        position += step;
+        
+        if (!InVolumeBounds(position))
+        {
+            return output;
+        }
+        
+        float3 uv = GetVolumeCoords(position);
+        
+        float density = SampleDensity(uv);
+        
+        if (density > _Threshold)
+        {
+            //float3 normal = ComputeNormal(uv);
+            //return float4(normal, 1);
+            
+            float4 color = SAMPLE_TEXTURE2D(_TransferTex, sampler_TransferTex, float2(density, 0.5)) * density * 0.15;
+            output += (1.0 - output.a) * color;
+        }
+    }
+
+    return output;
+}
+
 float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
 {
     float3 viewPointLocal = float3(IN.uv - 0.5, 1) * _ViewParams;
@@ -192,6 +228,7 @@ float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
     ray.origin = _WorldSpaceCameraPos;
     ray.dir = normalize(viewPoint - ray.origin);
     
+    //return SAMPLE_TEXTURE2D(_TransferTex, sampler_TransferTex, float2(0.5, 0.5));
     
     float3 boxMin = _VolumePosition - _VolumeScale / 2.0;
     float3 boxMax = _VolumePosition + _VolumeScale / 2.0;
@@ -201,7 +238,7 @@ float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
     {
         return RayMarchVolume(hit.hitPoint, ray.dir);
     }
-    return float4(0.2, 0.5, 0.5, 1);
+    return float4(0.4, 0.4, 0.4, 1);
 }
 
 #endif
