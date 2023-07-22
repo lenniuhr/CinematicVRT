@@ -211,7 +211,8 @@ float4 RayMarch(float3 position, float3 direction)
             //float3 normal = ComputeNormal(uv);
             //return float4(normal, 1);
             
-            float4 color = SAMPLE_TEXTURE2D(_TransferTex, sampler_TransferTex, float2(density, 0.5)) * density * 0.15;
+            float4 color = SAMPLE_TEXTURE2D(_TransferTex, sampler_TransferTex, float2(density, 0.5));
+            color.rgb *= color.a * 0.5;
             output += (1.0 - output.a) * color;
         }
     }
@@ -236,7 +237,7 @@ float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
     
     if (hit.didHit)
     {
-        return RayMarchVolume(hit.hitPoint, ray.dir);
+        return RayMarch(hit.hitPoint, ray.dir);
     }
     return float4(0.4, 0.4, 0.4, 1);
 }

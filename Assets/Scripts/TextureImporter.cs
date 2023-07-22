@@ -25,8 +25,6 @@ public class TextureImporter : MonoBehaviour
     {
         byte[] pngBytes = File.ReadAllBytes(path);
 
-        Debug.Log(pngBytes.Length);
-
         int byteSize = 1;
         if (dataFormat == DataFormat.UInt16) byteSize = 2;
 

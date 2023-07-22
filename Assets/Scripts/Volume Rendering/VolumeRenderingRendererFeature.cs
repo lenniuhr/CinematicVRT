@@ -50,14 +50,6 @@ public class VolumeRenderingRendererFeature : ScriptableRendererFeature
             this.material = CoreUtils.CreateEngineMaterial("Hidden/VolumeRendering");
             material.hideFlags = HideFlags.HideAndDontSave;
 
-            VolumeBoundingBox volumeBB = FindObjectOfType<VolumeBoundingBox>();
-
-            if(volumeBB != null)
-            {
-                material.SetTexture("_VolumeTex", volumeBB.texture);
-                material.SetVector("_VolumePosition", volumeBB.transform.position);
-                material.SetVector("_VolumeScale", volumeBB.transform.localScale);
-            }
             material.SetFloat("_StepSize", settings.StepSize);
             material.SetFloat("_NormalOffset", settings.NormalOffset);
             material.SetFloat("_Threshold", settings.Threshold);

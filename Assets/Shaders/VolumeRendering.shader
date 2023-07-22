@@ -2,10 +2,9 @@ Shader "Hidden/VolumeRendering"
 {
     Properties
     {
-        _VolumeTex("Volume Texture", 3D) = "white" {}
-        _VolumePosition("Volume Position", Vector) = (0, 0, 0)
-        _VolumeScale("Volume Scale", Vector) = (0, 0, 0)
         _StepSize("Step Size", Float) = 0.004
+        _NormalOffset("Normal Offset", Float) = 1
+        _Threshold("Threshold", Float) = 0.5
     }
     SubShader
     {
