@@ -1,19 +1,39 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering;
 
+[ExecuteInEditMode]
 public class VolumeBoundingBox : MonoBehaviour
 {
-    public Texture3D texture;
+    public VolumeDataset dataset;
 
-    public VolumeDataset volumeData;
+
+    private void Update()
+    {
+        if(transform.hasChanged)
+        {
+            transform.hasChanged = false;
+            UpdateShaderVariables();
+        }
+    }
+
+    private void OnEnable()
+    {
+        UpdateShaderVariables();
+    }
 
     private void OnValidate()
     {
-        if (volumeData != null)
+        UpdateShaderVariables();
+    }
+
+    private async void UpdateShaderVariables()
+    {
+        if (dataset != null)
         {
-            Shader.SetGlobalTexture("_VolumeTex", volumeData.GetTexture());
+            transform.localScale = dataset.GetScale();
+            Shader.SetGlobalTexture("_VolumeTex", await dataset.GetTexture());
+            Shader.SetGlobalTexture("_GradientTex", await dataset.GetGradientTexture());
         }
         else
         {
@@ -24,5 +44,6 @@ public class VolumeBoundingBox : MonoBehaviour
         }
         Shader.SetGlobalVector("_VolumePosition", transform.position);
         Shader.SetGlobalVector("_VolumeScale", transform.localScale);
+        Shader.SetGlobalMatrix("_VolumeWorldToLocalMatrix", transform.worldToLocalMatrix);
     }
 }

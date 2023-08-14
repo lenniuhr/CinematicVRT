@@ -23,7 +23,8 @@ public class RawImporter
     public async Task<VolumeDataset> ImportAsync()
     {
         VolumeDataset dataset = ScriptableObject.CreateInstance<VolumeDataset>();
-        dataset.name = Path.GetFileNameWithoutExtension(filePath);
+        dataset.datasetName = Path.GetFileNameWithoutExtension(filePath);
+        dataset.dataFormat = dataFormat;
         dataset.width = width;
         dataset.height = height;
         dataset.depth = depth;
@@ -54,20 +55,12 @@ public class RawImporter
                 if (value > max) max = value;
                 if (value < min) min = value;
             }
-
-            // Data
-            ushort[] shorts = new ushort[width * height * depth];
-
-            for(int i = 0; i < width * height * depth; i++)
-            {
-                // Convert to [0, 1] range
-                float value = (data[i] - min) / (max - min);
-                shorts[i] = Mathf.FloatToHalf(value);
-            }
             reader.Close();
             fs.Close();
 
-            dataset.SetData(shorts);
+            dataset.minValue = min;
+            dataset.maxValue = max;
+            dataset.SetData(data);
         });
         return dataset;
     }

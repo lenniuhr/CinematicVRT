@@ -4,13 +4,21 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Assets/Shaders/DefaultInput.hlsl"
 
+#define BOX_MIN float3(-0.5, -0.5, -0.5)
+#define BOX_MAX float3(0.5, 0.5, 0.5)
+
 float3 _ViewParams;
 float4x4 _CamLocalToWorldMatrix;
+
+float4x4 _VolumeWorldToLocalMatrix;
 
 
 TEXTURE2D(_TransferTex);  SAMPLER(sampler_TransferTex);
 
 TEXTURE3D(_VolumeTex);  SAMPLER(sampler_VolumeTex);
+
+TEXTURE3D(_GradientTex);  SAMPLER(sampler_GradientTex);
+
 float3 _VolumePosition;
 float3 _VolumeScale;
 
@@ -61,11 +69,22 @@ HitInfo RayBoundingBox(Ray ray, float3 boxMin, float3 boxMax)
     return hitInfo;
 };
 
+float3 GetVolumeCoordsOS(float3 positionOS)
+{
+    return InverseLerp(BOX_MIN, BOX_MAX, positionOS);
+}
+
 float3 GetVolumeCoords(float3 positionWS)
 {
     float3 boxMin = _VolumePosition - _VolumeScale / 2.0;
     float3 boxMax = _VolumePosition + _VolumeScale / 2.0;
     return InverseLerp(boxMin, boxMax, positionWS);
+}
+
+bool InVolumeBoundsOS(float3 positionOS)
+{
+    return positionOS.x > BOX_MIN.x && positionOS.y > BOX_MIN.y && positionOS.z > BOX_MIN.z 
+    && positionOS.x < BOX_MAX.x && positionOS.y < BOX_MAX.y && positionOS.z < BOX_MAX.z;
 }
 
 bool InVolumeBounds(float3 positionWS)
@@ -119,8 +138,8 @@ float GetBlurredDensity(float3 uv)
 
 float3 ComputeNormal(float3 uv)
 {
-    float offsetXY = 1 * _NormalOffset / 512.0;
-    float offsetZ = 1 * _NormalOffset / 105.0;
+    float offsetXY = 1 * _NormalOffset / 256.0;
+    float offsetZ = 1 * _NormalOffset / 256.0;
     
     float3 rightUV = uv + float3(offsetXY, 0, 0);
     float3 leftUV = uv + float3(-offsetXY, 0, 0);
@@ -152,7 +171,7 @@ float3 ComputeNormal(float3 uv)
     float gy = bottomValue - topValue;
     float gz = backValue - frontValue;
 
-    return normalize(float3(gx, gy, gz));
+    return float3(gx, gy, gz);
 }
 
 float4 RayMarchVolume(float3 position, float3 direction)
@@ -197,43 +216,76 @@ float4 RayMarch(float3 position, float3 direction)
     {
         position += step;
         
-        if (!InVolumeBounds(position))
+        if (!InVolumeBoundsOS(position))
         {
             return output;
         }
         
-        float3 uv = GetVolumeCoords(position);
+        float3 uv = GetVolumeCoordsOS(position);
         
         float density = SampleDensity(uv);
         
         if (density > _Threshold)
         {
-            //float3 normal = ComputeNormal(uv);
-            //return float4(normal, 1);
+            half3 normal = SAMPLE_TEXTURE3D(_GradientTex, sampler_GradientTex, uv).xyz;
             
-            float4 color = SAMPLE_TEXTURE2D(_TransferTex, sampler_TransferTex, float2(density, 0.5));
-            color.rgb *= color.a * 0.5;
-            output += (1.0 - output.a) * color;
+            //float3 normal = ComputeNormal(uv);
+            
+            return float4(normal, 1) * 3;
+            
+            //float4 color = SAMPLE_TEXTURE2D(_TransferTex, sampler_TransferTex, float2(density, 0.5));
+            //color.rgb *= color.a * 0.5;
+            //output += (1.0 - output.a) * color;
         }
     }
 
     return output;
 }
 
+HitInfo RayBoundingBoxOS(Ray ray)
+{
+    HitInfo hitInfo = (HitInfo) 0;
+    
+    // Return hit when ray origin is in bounds
+    if (InVolumeBoundsOS(ray.origin))
+    {
+        hitInfo.didHit = true;
+        hitInfo.hitPoint = ray.origin;
+        return hitInfo;
+    }
+    
+    float3 invDir = 1 / ray.dir;
+    float3 tMin = (BOX_MIN - ray.origin) * invDir;
+    float3 tMax = (BOX_MAX - ray.origin) * invDir;
+    float3 t1 = min(tMin, tMax);
+    float3 t2 = max(tMin, tMax);
+    float tNear = max(max(t1.x, t1.y), t1.z);
+    float tFar = min(min(t2.x, t2.y), t2.z);
+    
+    if (tNear >= 0)
+    {
+        hitInfo.didHit = tNear <= tFar;
+        hitInfo.hitPoint = ray.origin + ray.dir * tNear;
+    }
+    
+    return hitInfo;
+};
+
 float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
 {
     float3 viewPointLocal = float3(IN.uv - 0.5, 1) * _ViewParams;
     float3 viewPoint = mul(_CamLocalToWorldMatrix, float4(viewPointLocal, 1)).xyz;
     
+    float3 originWS = _WorldSpaceCameraPos;
+    float3 dirWS = normalize(viewPoint - originWS);
+    
+    //return SAMPLE_TEXTURE2D(_TransferTex, sampler_TransferTex, IN.uv);
+    
     Ray ray;
-    ray.origin = _WorldSpaceCameraPos;
-    ray.dir = normalize(viewPoint - ray.origin);
+    ray.origin = mul(_VolumeWorldToLocalMatrix, float4(originWS, 1)).xyz;
+    ray.dir = mul((float3x3) _VolumeWorldToLocalMatrix, dirWS);
     
-    //return SAMPLE_TEXTURE2D(_TransferTex, sampler_TransferTex, float2(0.5, 0.5));
-    
-    float3 boxMin = _VolumePosition - _VolumeScale / 2.0;
-    float3 boxMax = _VolumePosition + _VolumeScale / 2.0;
-    HitInfo hit = RayBoundingBox(ray, boxMin, boxMax);
+    HitInfo hit = RayBoundingBoxOS(ray);
     
     if (hit.didHit)
     {

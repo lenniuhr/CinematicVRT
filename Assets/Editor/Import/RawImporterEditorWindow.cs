@@ -12,7 +12,7 @@ public class RawImporterEditorWindow : EditorWindow
 
     private void CreateGUI()
     {
-        maxSize = new Vector2(300, 200);
+        maxSize = new Vector2(450, 200);
     }
 
     public void Init(string file)
@@ -42,13 +42,14 @@ public class RawImporterEditorWindow : EditorWindow
     {
         RawImporter importer = new RawImporter(file, dimX, dimY, dimZ, dataFormat);
         VolumeDataset dataset = await importer.ImportAsync();
+        dataset.spacing = spacing;
 
         if (dataset != null)
         {
-            string path = "Assets/Volume Data/" + dataset.name + ".asset";
+            string path = "Assets/Volume Data/" + dataset.datasetName + ".asset";
             AssetDatabase.CreateAsset(dataset, path);
 
-            Debug.Log("Created dataset for " + dataset.name);
+            Debug.Log("Created dataset for " + dataset.datasetName);
 
             this.Close();
         }

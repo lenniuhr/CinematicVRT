@@ -33,14 +33,15 @@ public class CVRTEditorFunctions
         if (filePath.Length == 0) return;
 
         DicomImporter importer = new DicomImporter(filePath);
+
         VolumeDataset dataset = await importer.ImportAsync();
 
         if (dataset != null)
         {
-            string path = "Assets/Volume Data/" + dataset.name + ".asset";
+            string path = "Assets/Volume Data/" + dataset.datasetName + ".asset";
             AssetDatabase.CreateAsset(dataset, path);
 
-            Debug.Log("Created dataset for " + dataset.name);
+            Debug.Log("Created dataset for " + dataset.datasetName);
         }
     }
 }

@@ -15,9 +15,9 @@ MonoBehaviour:
   m_Active: 1
   renderPassEvent: 1000
   settings:
-    StepSize: 0.002
+    StepSize: 0.001
     NormalOffset: 1
-    Threshold: 0
+    Threshold: 0.125
 --- !u!114 &-3347501342411450359
 MonoBehaviour:
   m_ObjectHideFlags: 0
