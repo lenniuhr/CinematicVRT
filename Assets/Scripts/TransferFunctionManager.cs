@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using static TransferFunction;
 
 [ExecuteInEditMode]
 public class TransferFunctionManager : MonoBehaviour

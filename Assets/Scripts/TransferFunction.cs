@@ -165,6 +165,8 @@ public class TransferFunction : ScriptableObject
         if(boxBuffer != null)
             boxBuffer.Release();
 
+        Shader.SetGlobalTexture("_TransferTex", texture);
+
         return texture;
     }
 

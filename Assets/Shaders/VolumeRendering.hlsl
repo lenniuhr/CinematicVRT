@@ -2,6 +2,7 @@
 #define VOLUME_RENDERING_INCLUDED
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "Assets/Shaders/DefaultInput.hlsl"
 
 #define BOX_MIN float3(-0.5, -0.5, -0.5)
@@ -206,11 +207,20 @@ float4 RayMarchVolume(float3 position, float3 direction)
     return 0;
 }
 
+float3 phongBRDF(float3 lightDir, float3 viewDir, float3 normal, float3 phongDiffuseCol, float3 phongSpecularCol, float phongShininess) 
+{
+  float3 color = phongDiffuseCol;
+  float3 reflectDir = reflect(-lightDir, normal);
+  float specDot = max(dot(reflectDir, viewDir), 0.0);
+  color += pow(specDot, phongShininess) * phongSpecularCol;
+  return color;
+}
+
 float4 RayMarch(float3 position, float3 direction)
 {
     float3 step = direction * _StepSize;
     float4 output = 0;
-    
+
     [loop]
     for (int i = 0; i < 720; i++)
     {
@@ -218,6 +228,7 @@ float4 RayMarch(float3 position, float3 direction)
         
         if (!InVolumeBoundsOS(position))
         {
+            break;
             return output;
         }
         
@@ -227,18 +238,42 @@ float4 RayMarch(float3 position, float3 direction)
         
         if (density > _Threshold)
         {
-            half3 normal = SAMPLE_TEXTURE3D(_GradientTex, sampler_GradientTex, uv).xyz;
+            //return density;
+        }
+
+        half3 normal = SAMPLE_TEXTURE3D(_GradientTex, sampler_GradientTex, uv).xyz;
             
-            //float3 normal = ComputeNormal(uv);
+        float2 transferUV = float2(density, length(normal));
+        half4 color = SAMPLE_TEXTURE2D(_TransferTex, sampler_TransferTex, transferUV);
+
+        // Blinn-Phong
+
+        float shininess = 0.0;
+        float irradiPerp = 1;
+        float4 specularColor = float4(0,0,0,0);
+
+        float3 lightDir   = normalize(_MainLightPosition - position);
+        float irradiance = max(dot(lightDir, normal), 0.0) * irradiPerp;
+
+        if(irradiance > 0.0) 
+        {
+            float3 brdf = phongBRDF(lightDir, direction, normal, color.rgb, specularColor.rgb, shininess);
+            color.rgb = brdf * irradiance * _MainLightColor.rgb;
+
+            output += (1.0 - output.a) * color;
+        }
+
+
+            //return color;
             
-            return float4(normal, 1) * 3;
+            //return float4(normal, 1) * 3;
             
             //float4 color = SAMPLE_TEXTURE2D(_TransferTex, sampler_TransferTex, float2(density, 0.5));
             //color.rgb *= color.a * 0.5;
             //output += (1.0 - output.a) * color;
-        }
+        //}
     }
-
+    
     return output;
 }
 
@@ -291,7 +326,7 @@ float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
     {
         return RayMarch(hit.hitPoint, ray.dir);
     }
-    return float4(0.4, 0.4, 0.4, 1);
+    return float4(0.1, 0.1, 0.1, 1);
 }
 
 #endif

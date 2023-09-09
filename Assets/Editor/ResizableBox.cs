@@ -421,7 +421,7 @@ public class ResizableBox
 
         TransferFunction.Box tfBox = new TransferFunction.Box();
 
-        tfBox.color = color;
+        tfBox.color = color.linear;
 
         tfBox.top = new TransferFunction.Line();
         tfBox.top.x1 = topLeftTex.x;

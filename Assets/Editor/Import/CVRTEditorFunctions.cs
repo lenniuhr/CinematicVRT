@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class CVRTEditorFunctions
 {
-    [MenuItem("CVRT/Import RAW Dataset")]
+    [MenuItem("Tools/Import RAW Dataset")]
     private static void ShowRawDatasetImporter()
     {
         string startFolder = Path.GetDirectoryName(Application.dataPath) + "/Data";
@@ -24,7 +24,7 @@ public class CVRTEditorFunctions
         }
     }
 
-    [MenuItem("CVRT/Import DICOM Dataset")]
+    [MenuItem("Tools/Import DICOM Dataset")]
     private static async void ImportDicomDataset()
     {
         string startFolder = Path.GetDirectoryName(Application.dataPath) + "/Data";
