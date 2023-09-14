@@ -15,12 +15,12 @@ public class TransferFunctionManagerEditor : Editor
             TransferFunctionEditorWindow window = (TransferFunctionEditorWindow)EditorWindow.GetWindow(typeof(TransferFunctionEditorWindow), false, "Edit Transfer Function");
 
             // Create transfer function if missing
-            if (manager.TransferFunction == null)
+            if (manager.transferFunction == null)
             {
-                manager.TransferFunction = ScriptableObject.CreateInstance<TransferFunction>();
-                manager.TransferFunction.name = "New Transfer Function";
+                manager.transferFunction = ScriptableObject.CreateInstance<TransferFunction>();
+                manager.transferFunction.name = "New Transfer Function"; //
             }
-            window.Init(manager.TransferFunction);
+            window.Init(manager.transferFunction);
         }
     }
 }

@@ -9,7 +9,7 @@ public class VolumeRenderingRendererFeature : ScriptableRendererFeature
     [Serializable]
     public class Settings
     {
-        [Range(0.0001f, 0.1f)]
+        [Range(0.00001f, 0.01f)]
         public float StepSize = 0.004f;
         [Range(0, 2)]
         public float NormalOffset = 1f;

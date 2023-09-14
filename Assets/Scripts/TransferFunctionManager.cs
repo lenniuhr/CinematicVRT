@@ -4,7 +4,7 @@ using UnityEngine;
 [ExecuteInEditMode]
 public class TransferFunctionManager : MonoBehaviour
 {
-    public TransferFunction TransferFunction;
+    public TransferFunction transferFunction;
 
     public Gradient gradient = null;
 
@@ -22,11 +22,15 @@ public class TransferFunctionManager : MonoBehaviour
 
     public void GenerateTransferTex()
     {
-        TransferFunction transferFunction = ScriptableObject.CreateInstance<TransferFunction>();
+        //TransferFunction transferFunction = ScriptableObject.CreateInstance<TransferFunction>();
 
-        Texture2D texture = transferFunction.GenerateTexture();
+        if (transferFunction == null) return;
+
+        Texture2D texture = transferFunction.GenerateTextureOnGPU();
 
         Shader.SetGlobalTexture("_TransferTex", texture);
+
+        Debug.Log($"Generated texture with dimension [{texture.width}, {texture.height}]");
     }
 
     public TransferFunction GetTransferFunction()

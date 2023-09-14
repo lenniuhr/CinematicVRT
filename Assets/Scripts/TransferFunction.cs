@@ -127,7 +127,7 @@ public class TransferFunction : ScriptableObject
     Texture2D texture;
     RenderTexture renderTarget;
 
-    public Texture2D GeneratePreviewTextureOnGPU()
+    public Texture2D GenerateTextureOnGPU()
     {
         Material material = CoreUtils.CreateEngineMaterial("Hidden/TransferTexture");
         material.hideFlags = HideFlags.HideAndDontSave;
@@ -166,36 +166,6 @@ public class TransferFunction : ScriptableObject
             boxBuffer.Release();
 
         Shader.SetGlobalTexture("_TransferTex", texture);
-
-        return texture;
-    }
-
-    public Texture2D GenerateTexture()
-    {
-        // Generate texture
-        TextureFormat texformat = SystemInfo.SupportsTextureFormat(TextureFormat.RGBAHalf) ? TextureFormat.RGBAHalf : TextureFormat.RGBAFloat;
-        Texture2D texture = new Texture2D(TEXTURE_WIDTH, TEXTURE_HEIGHT, texformat, false);
-
-        Color[] cols = new Color[TEXTURE_WIDTH * TEXTURE_HEIGHT];
-        for (int iX = 0; iX < TEXTURE_WIDTH; iX++)
-        {
-            for (int iY = 0; iY < TEXTURE_WIDTH; iY++)
-            {
-                cols[iX + iY * TEXTURE_WIDTH] = Color.clear;
-
-                float x = iX / (float)TEXTURE_WIDTH;
-                float y = iY / (float)TEXTURE_HEIGHT;
-
-                foreach(Box box in boxes)
-                {
-
-                    cols[iX + iY * TEXTURE_WIDTH] += new Color(1, 0, 0, box.GetAlpha(x, y));
-                }    
-            }
-        }
-        texture.wrapMode = TextureWrapMode.Clamp;
-        texture.SetPixels(cols);
-        texture.Apply();
 
         return texture;
     }

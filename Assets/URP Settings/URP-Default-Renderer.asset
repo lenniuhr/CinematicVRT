@@ -17,7 +17,7 @@ MonoBehaviour:
   settings:
     StepSize: 0.001
     NormalOffset: 1
-    Threshold: 0.23
+    Threshold: 0.373
 --- !u!114 &-3347501342411450359
 MonoBehaviour:
   m_ObjectHideFlags: 0

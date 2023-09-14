@@ -79,7 +79,7 @@ public class TransferFunctionEditorWindow : EditorWindow
         Rect textureRect = new Rect(MARGIN, MARGIN, textureWidth, textureHeight);
 
         GUI.DrawTexture(textureRect, texture, ScaleMode.StretchToFill, true, 0, Color.white, 0, 6);
-        GUI.DrawTexture(textureRect, transferFunction.GeneratePreviewTextureOnGPU(), ScaleMode.StretchToFill, true, 0, Color.white, 0, 6);
+        GUI.DrawTexture(textureRect, transferFunction.GenerateTextureOnGPU(), ScaleMode.StretchToFill, true, 0, Color.white, 0, 6);
 
         // Handle Input
         if (Event.current.type == EventType.MouseDown)
@@ -237,7 +237,7 @@ public class TransferFunctionEditorWindow : EditorWindow
 
         Rect anotherRect = new Rect(MARGIN, textureHeight + 3 * MARGIN + 150, 200, 100);
         GUI.DrawTexture(anotherRect,new Texture2D(1, 1), ScaleMode.StretchToFill, true, 0, Color.white, 0, 3);
-        GUI.DrawTexture(anotherRect, transferFunction.GeneratePreviewTextureOnGPU(), ScaleMode.StretchToFill, true, 0, Color.white, 0, 3);
+        GUI.DrawTexture(anotherRect, transferFunction.GenerateTextureOnGPU(), ScaleMode.StretchToFill, true, 0, Color.white, 0, 3);
 
 
         Repaint();

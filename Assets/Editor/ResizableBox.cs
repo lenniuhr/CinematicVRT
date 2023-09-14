@@ -89,7 +89,7 @@ public class ResizableBox
     public void Rescale()
     {
         TransferFunction.Box tfBox = transferFunction.GetBoxById(index);
-        color = tfBox.color;
+        color = tfBox.color.gamma;
 
         topLeft = TextureToEditorCoord(tfBox.top.x1, tfBox.top.y);
         topRight = TextureToEditorCoord(tfBox.top.x2, tfBox.top.y);

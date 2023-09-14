@@ -220,7 +220,7 @@ float4 RayMarch(float3 position, float3 direction)
 {
     float3 step = direction * _StepSize;
     float4 output = 0;
-
+    
     [loop]
     for (int i = 0; i < 720; i++)
     {
@@ -252,7 +252,9 @@ float4 RayMarch(float3 position, float3 direction)
         float irradiPerp = 1;
         float4 specularColor = float4(0,0,0,0);
 
-        float3 lightDir   = normalize(_MainLightPosition - position);
+        float3 mainLightPositionOS = mul(_VolumeWorldToLocalMatrix, _MainLightPosition).xyz;
+        
+        float3 lightDir = normalize(mainLightPositionOS - position);
         float irradiance = max(dot(lightDir, normal), 0.0) * irradiPerp;
 
         if(irradiance > 0.0) 
