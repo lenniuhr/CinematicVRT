@@ -12,6 +12,11 @@ float3 _ViewParams;
 float4x4 _CamLocalToWorldMatrix;
 
 float4x4 _VolumeWorldToLocalMatrix;
+float4x4 _VolumeLocalToWorldMatrix;
+
+
+float _Roughness;
+float _Metallicness;
 
 
 TEXTURE2D(_TransferTex);  SAMPLER(sampler_TransferTex);
@@ -20,8 +25,13 @@ TEXTURE3D(_VolumeTex);  SAMPLER(sampler_VolumeTex);
 
 TEXTURE3D(_GradientTex);  SAMPLER(sampler_GradientTex);
 
+TEXTURECUBE(_Skybox);       SAMPLER(sampler_Skybox);
+
 float3 _VolumePosition;
 float3 _VolumeScale;
+
+float _MinDensity;
+float _MaxDensity;
 
 float _StepSize;
 float _NormalOffset;
@@ -31,6 +41,7 @@ struct Ray
 {
     float3 origin;
     float3 dir;
+    float3 directionWS;
 };
 
 struct HitInfo
@@ -105,38 +116,6 @@ float SampleDensity(float3 uv)
     return SAMPLE_TEXTURE3D(_VolumeTex, sampler_VolumeTex, uv).r;
 }
 
-float GetBlurredDensity(float3 uv)
-{
-    float offsetXY = 1 / 512.0;
-    
-    float3 rightUV = uv + float3(offsetXY, 0, 0);
-    float3 leftUV = uv + float3(-offsetXY, 0, 0);
-    float3 topUV = uv + float3(0, offsetXY, 0);
-    float3 bottomUV = uv + float3(0, -offsetXY, 0);
-    
-    float3 rightTopUV = uv + float3(offsetXY, offsetXY, 0);
-    float3 leftTopUV = uv + float3(-offsetXY, offsetXY, 0);
-    float3 rightBottomUV = uv + float3(offsetXY, -offsetXY, 0);
-    float3 leftBottomUV = uv + float3(-offsetXY, -offsetXY, 0);
-    
-    float value = SampleDensity(uv);
-    
-    float rightValue = SampleDensity(rightUV);
-    float leftValue = SampleDensity(leftUV);
-    float topValue = SampleDensity(topUV);
-    float bottomValue = SampleDensity(bottomUV);
-    
-    float rightTopValue = SampleDensity(rightTopUV);
-    float leftTopValue = SampleDensity(leftTopUV);
-    float rightBottomValue = SampleDensity(rightBottomUV);
-    float leftBottomValue = SampleDensity(leftBottomUV);
-    
-    float gaussian = (1 / 16.0) * (4 * value + 2 * rightValue + 2 * leftValue + 2 * topValue + 2 * bottomValue
-    + rightTopValue + leftTopValue + rightBottomValue + leftBottomValue);
-
-    return gaussian;
-}
-
 float3 ComputeNormal(float3 uv)
 {
     float offsetXY = 1 * _NormalOffset / 256.0;
@@ -156,17 +135,7 @@ float3 ComputeNormal(float3 uv)
     float topValue = SampleDensity(topUV);
     float bottomValue = SampleDensity(bottomUV);
     float frontValue = SampleDensity(frontUV);
-    float backValue = SampleDensity(backUV);
-    
-    /*float value = GetBlurredDensity(uv);
-    
-    float rightValue = GetBlurredDensity(rightUV);
-    float leftValue = GetBlurredDensity(leftUV);
-    float topValue = GetBlurredDensity(topUV);
-    float bottomValue = GetBlurredDensity(bottomUV);
-    float frontValue = GetBlurredDensity(frontUV);
-    float backValue = GetBlurredDensity(backUV);*/
-    
+    float backValue = SampleDensity(backUV);    
 
     float gx = leftValue - rightValue;
     float gy = bottomValue - topValue;
@@ -175,36 +144,72 @@ float3 ComputeNormal(float3 uv)
     return float3(gx, gy, gz);
 }
 
-float4 RayMarchVolume(float3 position, float3 direction)
-{
-    float3 step = direction * _StepSize;
-    
-    [loop]
-    for (int i = 0; i < 720; i++)
-    {
-        position += step;
-        
-        if (!InVolumeBounds(position))
-        {
-            return 0;
-        }
-        
-        float3 uv = GetVolumeCoords(position);
-        
-        float density = SampleDensity(uv);
-        
-        if (density > _Threshold)
-        {
-            float3 normal = ComputeNormal(uv);
-            return float4(normal, 1);
-            
-            //density = GetBlurredDensity(uv);
-            
-            return density;
-        }
-    }
+#define kDielectricSpec half4(0.04, 0.04, 0.04, 1.0 - 0.04) // standard dielectric reflectivity coef at incident angle (= 4%)
 
-    return 0;
+struct MyBRDFData
+{
+    half3 albedo;
+    half3 diffuse;
+    half3 specular;
+    half reflectivity;
+    half perceptualRoughness;
+    half roughness;
+    half roughness2;
+    half grazingTerm;
+
+    // We save some light invariant BRDF terms so we don't have to recompute
+    // them in the light loop. Take a look at DirectBRDF function for detailed explaination.
+    half normalizationTerm;     // roughness * 4.0 + 2.0
+    half roughness2MinusOne;    // roughness^2 - 1.0
+};
+
+void InitializeBRDFData(half3 albedo, half smoothness, half metallic, out MyBRDFData outBRDFData)
+{
+    half oneMinusDielectricSpec = kDielectricSpec.a;
+    oneMinusDielectricSpec =  oneMinusDielectricSpec - metallic * oneMinusDielectricSpec;
+
+    half oneMinusReflectivity = oneMinusDielectricSpec;
+    half reflectivity = half(1.0) - oneMinusReflectivity;
+    half3 brdfDiffuse = albedo * oneMinusReflectivity;
+    half3 brdfSpecular = lerp(kDieletricSpec.rgb, albedo, metallic);
+
+    outBRDFData = (MyBRDFData)0;
+    outBRDFData.albedo = albedo;
+    outBRDFData.diffuse = brdfDiffuse;
+    outBRDFData.specular = brdfSpecular;
+    outBRDFData.reflectivity = reflectivity;
+
+    outBRDFData.perceptualRoughness = (1.0 - smoothness);
+    outBRDFData.roughness           = max(outBRDFData.perceptualRoughness * outBRDFData.perceptualRoughness, HALF_MIN_SQRT);
+    outBRDFData.roughness2          = max(outBRDFData.roughness * outBRDFData.roughness, HALF_MIN);
+    outBRDFData.grazingTerm         = saturate(smoothness + reflectivity);
+    outBRDFData.normalizationTerm   = outBRDFData.roughness * half(4.0) + half(2.0);
+    outBRDFData.roughness2MinusOne  = outBRDFData.roughness2 - half(1.0);
+
+}
+
+float3 PBRLighting(half3 albedo, half smoothness, half metallic, float3 viewDirectionWS, float3 normalWS, half3 bakedGI)
+{
+    // Initalize brdf data
+    MyBRDFData brdfData;
+    InitializeBRDFData(albedo, smoothness, metallic, brdfData);
+    // Global Illumination
+
+    half3 reflectVector = reflect(-viewDirectionWS, normalWS);
+    half NoV = saturate(dot(normalWS, viewDirectionWS));
+    half fresnelTerm = Pow4(1.0 - NoV);
+
+    half3 indirectDiffuse = bakedGI;
+
+    half3 indirectSpecular = GlossyEnvironmentReflection(reflectVector, brdfData.perceptualRoughness, half(1.0));
+
+    // EnvironmentBRDF
+    half3 c = indirectDiffuse * brdfData.diffuse;
+
+    float surfaceReduction = 1.0 / (brdfData.roughness2 + 1.0);
+    c += indirectSpecular * half3(surfaceReduction * lerp(brdfData.specular, brdfData.grazingTerm, fresnelTerm));
+
+    return c;
 }
 
 float3 phongBRDF(float3 lightDir, float3 viewDir, float3 normal, float3 phongDiffuseCol, float3 phongSpecularCol, float phongShininess) 
@@ -216,20 +221,22 @@ float3 phongBRDF(float3 lightDir, float3 viewDir, float3 normal, float3 phongDif
   return color;
 }
 
-float4 RayMarch(float3 position, float3 direction)
+float4 RayMarch(float3 position, Ray ray)
 {
-    float3 step = direction * _StepSize;
+    float3 step = ray.dir * _StepSize;
     float4 output = 0;
+
+    int steps = 0;
     
     [loop]
     for (int i = 0; i < 720; i++)
     {
         position += step;
+        steps++;
         
         if (!InVolumeBoundsOS(position))
         {
             break;
-            return output;
         }
         
         float3 uv = GetVolumeCoordsOS(position);
@@ -241,12 +248,21 @@ float4 RayMarch(float3 position, float3 direction)
             //return density;
         }
 
-        half3 normal = SAMPLE_TEXTURE3D(_GradientTex, sampler_GradientTex, uv).xyz;
-            
-        float2 transferUV = float2(density, length(normal));
-        half4 color = SAMPLE_TEXTURE2D(_TransferTex, sampler_TransferTex, transferUV);
+        half3 gradient = SAMPLE_TEXTURE3D(_GradientTex, sampler_GradientTex, uv).xyz * 2 - 1;
 
-        // Blinn-Phong
+        float2 transferUV = float2(density, length(gradient));
+        half4 color = SAMPLE_TEXTURE2D(_TransferTex, sampler_TransferTex, transferUV);
+        
+        if(color.a < 0.001)
+        {
+            continue;
+        }
+        
+
+        float3 normalWS = mul((float3x3)_VolumeLocalToWorldMatrix, gradient);
+        normalWS = normalize(normalWS);
+
+        //normal = mul((float3x3)_VolumeLocalToWorldMatrix, ComputeNormal(uv));
 
         float shininess = 0.0;
         float irradiPerp = 1;
@@ -255,28 +271,41 @@ float4 RayMarch(float3 position, float3 direction)
         float3 mainLightPositionOS = mul(_VolumeWorldToLocalMatrix, _MainLightPosition).xyz;
         
         float3 lightDir = normalize(mainLightPositionOS - position);
-        float irradiance = max(dot(lightDir, normal), 0.0) * irradiPerp;
+        float irradiance = max(dot(lightDir, normalWS), 0.0) * irradiPerp;
+
+        float3 brdf = 0;
 
         if(irradiance > 0.0) 
         {
-            float3 brdf = phongBRDF(lightDir, direction, normal, color.rgb, specularColor.rgb, shininess);
-            color.rgb = brdf * irradiance * _MainLightColor.rgb;
+            brdf = phongBRDF(lightDir, -ray.directionWS, normalWS, color.rgb, specularColor.rgb, shininess);
 
-            output += (1.0 - output.a) * color;
         }
 
+        // Old
 
-            //return color;
-            
-            //return float4(normal, 1) * 3;
-            
-            //float4 color = SAMPLE_TEXTURE2D(_TransferTex, sampler_TransferTex, float2(density, 0.5));
-            //color.rgb *= color.a * 0.5;
-            //output += (1.0 - output.a) * color;
-        //}
+        half3 gi = SampleSH(normalWS);
+        //color.rgb *= gi;
+
+        // PBR
+
+        color.rgb = PBRLighting(color.rgb, 1 - _Roughness , _Metallicness, -ray.directionWS, normalWS, gi);
+
+
+        // alpha is per 0.1 units
+        float transparency = _StepSize / 0.002;
+
+        float oneMinusAlpha = 1.0 - output.a;
+        output.a += oneMinusAlpha * color.a * transparency;
+        output.rgb += oneMinusAlpha * color.a * transparency * color.rgb;
+
+        if(output.a > 0.999)
+        {
+            break;
+        }
     }
-    
-    return output;
+
+    //return pow((float) steps / 600.0, 1);
+    return output;//pow(output, 2.2);
 }
 
 HitInfo RayBoundingBoxOS(Ray ray)
@@ -321,14 +350,28 @@ float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
     Ray ray;
     ray.origin = mul(_VolumeWorldToLocalMatrix, float4(originWS, 1)).xyz;
     ray.dir = mul((float3x3) _VolumeWorldToLocalMatrix, dirWS);
+    ray.directionWS = dirWS;
+
+    half4 skyData = SAMPLE_TEXTURECUBE(_Skybox, sampler_Skybox, dirWS);
     
     HitInfo hit = RayBoundingBoxOS(ray);
+
+    //half3 gi = SampleSH(dirWS);
+    //return half4(gi, 1);
     
     if (hit.didHit)
     {
-        return RayMarch(hit.hitPoint, ray.dir);
+        half4 output = RayMarch(hit.hitPoint, ray);
+
+        output += (1.0 - output.a) * saturate(skyData);
+        return output;
     }
-    return float4(0.1, 0.1, 0.1, 1);
+
+    //half mip = PerceptualRoughnessToMipmapLevel(info.perceptualRoughness);
+    //half4 encodedIrradiance = half4(SAMPLE_TEXTURECUBE_LOD(_GlossyEnvironmentCubeMap, sampler_GlossyEnvironmentCubeMap, reflectVector, mip));
+    //half3 indirectSpecular = DecodeHDREnvironment(encodedIrradiance, _GlossyEnvironmentCubeMap_HDR);
+    
+    return skyData;
 }
 
 #endif

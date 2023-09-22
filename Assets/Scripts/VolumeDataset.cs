@@ -1,3 +1,4 @@
+using FellowOakDicom;
 using System;
 using System.Threading.Tasks;
 using Unity.Mathematics;
@@ -13,6 +14,8 @@ public class VolumeDataset : ScriptableObject
     public float minValue;
     public float maxValue;
     public Vector3 spacing;
+    public float clampRangeMin;
+    public float clampRangeMax;
 
     [HideInInspector][SerializeField]
     private float[] data;
@@ -38,6 +41,9 @@ public class VolumeDataset : ScriptableObject
 
             ushort[] shorts = new ushort[width * height * depth];
 
+            float min = Mathf.Max(minValue, clampRangeMin);
+            float max = Mathf.Min(maxValue, clampRangeMax);
+
             await Task.Run(() =>
             {
                 for (int z = 0; z < depth; z++)
@@ -49,7 +55,7 @@ public class VolumeDataset : ScriptableObject
                             int i = z * (width * height) + y * width + x;
 
                             // Convert to [0, 1] range
-                            float value = (data[i] - minValue) / (maxValue - minValue);
+                            float value = (data[i] - min) / (max - min);
                             shorts[i] = Mathf.FloatToHalf(value);
 
                         }
@@ -77,7 +83,10 @@ public class VolumeDataset : ScriptableObject
             gradientTexture.wrapMode = TextureWrapMode.Clamp;
             gradientTexture.filterMode = FilterMode.Bilinear;
 
-            Color[] colors = new Color[width * height * depth];
+            Debug.Log($"Create array with size: {width * height * depth * 3} byte");
+
+            byte[] pixelData = new byte[width * height * depth * 3];
+
             await Task.Run(() =>
             {
                 for (int z = 0; z < depth; z++)
@@ -88,15 +97,18 @@ public class VolumeDataset : ScriptableObject
                         {
                             int i = z * (width * height) + y * width + x;
 
-                            // Convert to [0, 1] range
-                            Vector3 gradient = GetGradient(x, y, z);
-                            colors[i] = new Color(gradient.x, gradient.y, gradient.z);
+                            // Returns gradient in to [0, 1] range
+                            Vector3 gradient = GetGradient(x, y, z) * 0.5f + new Vector3(0.5f, 0.5f, 0.5f);
+
+                            pixelData[i * 3] = (byte)(gradient.x * 255);
+                            pixelData[i * 3 + 1] = (byte)(gradient.y * 255);
+                            pixelData[i * 3 + 2] = (byte)(gradient.z * 255);
                         }
                     }
                 }
             });
 
-            gradientTexture.SetPixels(colors, 0);
+            gradientTexture.SetPixelData(pixelData, 0);
             gradientTexture.Apply();
 
             return gradientTexture;
@@ -105,13 +117,16 @@ public class VolumeDataset : ScriptableObject
 
     private Vector3 GetGradient(int x, int y, int z)
     {
-        float valueRange = maxValue - minValue;
-        float x1 = data[Math.Min(x + 1, width - 1) + y * width + z * (width * height)] - minValue;
-        float x2 = data[Math.Max(x - 1, 0) + y * width + z * (width * height)] - minValue;
-        float y1 = data[x + Math.Min(y + 1, height - 1) * width + z * (width * height)] - minValue;
-        float y2 = data[x + Math.Max(y - 1, 0) * width + z * (width * height)] - minValue;
-        float z1 = data[x + y * width + Math.Min(z + 1, depth - 1) * (width * height)] - minValue;
-        float z2 = data[x + y * width + Math.Max(z - 1, 0) * (width * height)] - minValue;
+        float min = Mathf.Max(minValue, clampRangeMin);
+        float max = Mathf.Min(maxValue, clampRangeMax);
+
+        float valueRange = max - min;
+        float x1 = data[Math.Min(x + 1, width - 1) + y * width + z * (width * height)] - min;
+        float x2 = data[Math.Max(x - 1, 0) + y * width + z * (width * height)] - min;
+        float y1 = data[x + Math.Min(y + 1, height - 1) * width + z * (width * height)] - min;
+        float y2 = data[x + Math.Max(y - 1, 0) * width + z * (width * height)] - min;
+        float z1 = data[x + y * width + Math.Min(z + 1, depth - 1) * (width * height)] - min;
+        float z2 = data[x + y * width + Math.Max(z - 1, 0) * (width * height)] - min;
 
         return new Vector3((x2 - x1) / valueRange, (y2 - y1) / valueRange, (z2 - z1) / valueRange);
     }
@@ -130,7 +145,7 @@ public class VolumeDataset : ScriptableObject
 
     public async Task<Texture2D> GetHistogram()
     {
-        if (histogram != null && false)
+        if (histogram != null)
         {
             return histogram;
         }
@@ -151,6 +166,9 @@ public class VolumeDataset : ScriptableObject
 
             const float maxNormalisedMagnitude = 1;
 
+            float min = Mathf.Max(minValue, clampRangeMin);
+            float max = Mathf.Min(maxValue, clampRangeMax);
+
             await Task.Run(() =>
             {
                 // Count pixels
@@ -163,7 +181,7 @@ public class VolumeDataset : ScriptableObject
                             int i = z * (width * height) + y * width + x;
 
                             // Convert to [0, 1] range
-                            float value = (data[i] - minValue) / (maxValue - minValue);
+                            float value = (data[i] - min) / (max - min);
                             Vector3 gradient = GetGradient(x, y, z);
 
                             int pixelX = Mathf.Min(hWidth - 1, Mathf.FloorToInt(value * hWidth));

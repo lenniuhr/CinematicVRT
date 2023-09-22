@@ -1,12 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 [ExecuteInEditMode]
 public class VolumeBoundingBox : MonoBehaviour
 {
     public VolumeDataset dataset;
 
+    [Range(0, 1)]
+    public float Roughness;
+    [Range(0, 1)]
+    public float Metallicness;
 
     private void Update()
     {
@@ -45,5 +50,14 @@ public class VolumeBoundingBox : MonoBehaviour
         Shader.SetGlobalVector("_VolumePosition", transform.position);
         Shader.SetGlobalVector("_VolumeScale", transform.localScale);
         Shader.SetGlobalMatrix("_VolumeWorldToLocalMatrix", transform.worldToLocalMatrix);
+        Shader.SetGlobalMatrix("_VolumeLocalToWorldMatrix", transform.localToWorldMatrix);
+
+
+
+        float min = Mathf.Max(dataset.minValue, dataset.clampRangeMin);
+        float max = Mathf.Min(dataset.maxValue, dataset.clampRangeMax);
+
+        Shader.SetGlobalFloat("_Roughness", Roughness);
+        Shader.SetGlobalFloat("_Metallicness", Metallicness);
     }
 }

@@ -55,7 +55,5 @@ public class TransferFunctionManager : MonoBehaviour
             texture.SetPixel(i, 0, gradient.Evaluate(t));
         }
         texture.Apply(false);
-
-        Shader.SetGlobalTexture("_TransferTex", texture);
     }
 }

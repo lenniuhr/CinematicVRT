@@ -88,7 +88,10 @@ Shader "Hidden/TransferTexture"
                     float contribution;
                     if(IntersectBox(IN.uv, box, contribution))
                     {
-                        color += box.color * lerp(box.minAlpha, box.maxAlpha, contribution);
+                        color.rgb += box.color.rgb;
+
+                        float alpha = lerp(box.minAlpha, box.maxAlpha, contribution);
+                        color.a += alpha;
                     }
                 }
 
