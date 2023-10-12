@@ -26,7 +26,7 @@ public class VolumeDataset : ScriptableObject
 
     public async Task<Texture3D> GetTexture()
     {
-        if(dataTexture != null)
+        if(dataTexture != null && false)
         {
             return dataTexture;
         }
@@ -72,7 +72,7 @@ public class VolumeDataset : ScriptableObject
 
     public async Task<Texture3D> GetGradientTexture()
     {
-        if (gradientTexture != null)
+        if (gradientTexture != null && false)
         {
             return gradientTexture;
         }
@@ -145,7 +145,7 @@ public class VolumeDataset : ScriptableObject
 
     public async Task<Texture2D> GetHistogram()
     {
-        if (histogram != null)
+        if (histogram != null && false)
         {
             return histogram;
         }

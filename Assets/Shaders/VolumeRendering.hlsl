@@ -221,6 +221,172 @@ float3 phongBRDF(float3 lightDir, float3 viewDir, float3 normal, float3 phongDif
   return color;
 }
 
+static const int OCTREE_OFFSET[8] =
+{
+    0,
+    (2 * 2 * 2),
+    (2 * 2 * 2) + (4 * 4 * 4),
+    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8),
+    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8) + (16 * 16 * 16),
+    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8) + (16 * 16 * 16) + (32 * 32 * 32),
+    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8) + (16 * 16 * 16) + (32 * 32 * 32) + (64 * 64 * 64),
+    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8) + (16 * 16 * 16) + (32 * 32 * 32) + (64 * 64 * 64) + (128 * 128 * 128),
+};
+
+#define SMALL_OFFSET 0.0001
+
+StructuredBuffer<float> _OctreeBuffer;
+int _OctreeLevel;
+
+float GetOctreeValue(int level, float3 uv)
+{
+    int dim = pow(2, level);
+    
+    int x = clamp(floor(uv.x * dim), 0, dim - 1);
+    int y = clamp(floor(uv.y * dim), 0, dim - 1);
+    int z = clamp(floor(uv.z * dim), 0, dim - 1);
+
+    int index = OCTREE_OFFSET[level - 1] + (dim * dim * z + dim * y + x);
+    
+    return _OctreeBuffer[index];
+}
+
+int3 GetOctreeId(int level, float3 uv)
+{
+    int dim = pow(2, level);
+    
+    int x = clamp(floor(uv.x * dim), 0, dim - 1);
+    int y = clamp(floor(uv.y * dim), 0, dim - 1);
+    int z = clamp(floor(uv.z * dim), 0, dim - 1);
+    
+    return int3(x, y, z);
+}
+
+float3 RayOctreeBB(float3 uv, float octreeLevel, float3 position, float3 dir)
+{
+    float octreeDim = pow(2, octreeLevel);
+    
+    float3 cellMin = BOX_MIN + (floor(uv * octreeDim) / octreeDim);
+    float3 cellMax = BOX_MIN + (ceil(uv * octreeDim) / octreeDim); // TODO case when uv * octreedim is exactly integer
+    
+    float3 invDir = 1 / dir;
+    float3 tMin = (cellMin - position) * invDir;
+    float3 tMax = (cellMax - position) * invDir;
+    float3 t1 = min(tMin, tMax);
+    float3 t2 = max(tMin, tMax);
+    float tNear = max(max(t1.x, t1.y), t1.z);
+    float tFar = min(min(t2.x, t2.y), t2.z);
+    
+    float3 hitPoint = position + dir * (tFar + SMALL_OFFSET); // Push the position inside the box
+        
+    return hitPoint;
+}
+
+int LevelUpTree(int level, float3 uv)
+{
+    while (level < _OctreeLevel)
+    {
+        level++;
+        float value = GetOctreeValue(level, uv);
+        
+        if (value <= _Threshold)
+        {
+            break;
+        }
+    }
+    return level;
+}
+
+float4 RayMarchOctree(float3 position, Ray ray)
+{
+    //float3 step = ray.dir * _StepSize;
+    float4 output = 0;
+
+    int steps = 0;
+    
+    float level = 1;
+    
+    float octreeDim = pow(2, level);
+    
+    // Octree id
+    int3 octreeId;
+    
+    [loop]
+    for (int i = 0; i < 720; i++)
+    {
+        //position += step;
+        
+        if (!InVolumeBoundsOS(position))
+        {
+            break;
+        }
+        
+        float3 uv = GetVolumeCoordsOS(position);
+        float value = GetOctreeValue(level, uv);
+        
+        // Remove
+        int dim = pow(2, level);
+    
+        int x = clamp(floor(uv.x * dim), 0, dim - 1);
+        int y = clamp(floor(uv.y * dim), 0, dim - 1);
+        int z = clamp(floor(uv.z * dim), 0, dim - 1);
+
+        int index = dim * dim * z + dim * y + x;
+        
+        /*if (index > 0)
+        {
+            return float4(uv, 1);
+            return value;
+        }
+        else
+        {
+            // Calculate step
+            float3 hitPoint = RayOctreeBB(uv, octreeDim, position, ray.dir);
+            float3 newUV = GetVolumeCoordsOS(hitPoint);
+            return float4(newUV, 1);
+
+        }*/
+        
+        if (value > _Threshold)
+        {
+            level = LevelUpTree(level, uv);
+            octreeId = GetOctreeId(level - 1, uv);
+                
+            if (level >= _OctreeLevel)
+            {
+                output = value;
+                break;
+            }
+        }
+        else
+        {
+            if (level > 1)
+            {
+                int3 currentId = GetOctreeId(level - 1, uv);
+                if (currentId.x != octreeId.x || currentId.y != octreeId.y || currentId.z != octreeId.z)
+                {
+                    float higherValue = GetOctreeValue(level - 1, uv);
+                    if (higherValue <= _Threshold)
+                    {
+                        level--;
+                    }
+
+                }
+            }
+        }
+                
+        // Calculate step
+        float3 hitPoint = RayOctreeBB(uv, level, position, ray.dir);
+        position = hitPoint;
+        
+        steps++;
+    }
+    //return 0;
+    //return 0.4 * step(1.5, steps);
+    return pow((float) steps / 100.0, 1);
+    return output;
+}
+
 float4 RayMarch(float3 position, Ray ray)
 {
     float3 step = ray.dir * _StepSize;
@@ -304,7 +470,8 @@ float4 RayMarch(float3 position, Ray ray)
         }
     }
 
-    //return pow((float) steps / 600.0, 1);
+    return pow((float) steps / 600.0, 1);
+    
     return output;//pow(output, 2.2);
 }
 
@@ -331,7 +498,7 @@ HitInfo RayBoundingBoxOS(Ray ray)
     if (tNear >= 0)
     {
         hitInfo.didHit = tNear <= tFar;
-        hitInfo.hitPoint = ray.origin + ray.dir * tNear;
+        hitInfo.hitPoint = ray.origin + ray.dir * (tNear + SMALL_OFFSET); // Push the position inside the box
     }
     
     return hitInfo;
@@ -361,7 +528,8 @@ float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
     
     if (hit.didHit)
     {
-        half4 output = RayMarch(hit.hitPoint, ray);
+        half4 output = RayMarchOctree(hit.hitPoint, ray);
+        return output;
 
         output += (1.0 - output.a) * saturate(skyData);
         return output;
@@ -371,6 +539,7 @@ float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
     //half4 encodedIrradiance = half4(SAMPLE_TEXTURECUBE_LOD(_GlossyEnvironmentCubeMap, sampler_GlossyEnvironmentCubeMap, reflectVector, mip));
     //half3 indirectSpecular = DecodeHDREnvironment(encodedIrradiance, _GlossyEnvironmentCubeMap_HDR);
     
+    return float4(0, 0, 0, 1);
     return skyData;
 }
 

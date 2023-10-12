@@ -13,6 +13,9 @@ public class VolumeBoundingBox : MonoBehaviour
     [Range(0, 1)]
     public float Metallicness;
 
+    private Texture3D dataTexture;
+    private Texture3D gradientTexture;
+
     private void Update()
     {
         if(transform.hasChanged)
@@ -32,13 +35,25 @@ public class VolumeBoundingBox : MonoBehaviour
         UpdateShaderVariables();
     }
 
-    private async void UpdateShaderVariables()
+    public Texture3D GetDataTexture()
     {
+        return dataTexture;
+    }
+
+    public async void ReloadTextures()
+    {
+        if (dataset == null) return;
+
+        dataTexture = await dataset.GetTexture();
+        gradientTexture = await dataset.GetGradientTexture();
+
+        Debug.Log("Generated Textures");
+
         if (dataset != null)
         {
             transform.localScale = dataset.GetScale();
-            Shader.SetGlobalTexture("_VolumeTex", await dataset.GetTexture());
-            Shader.SetGlobalTexture("_GradientTex", await dataset.GetGradientTexture());
+            Shader.SetGlobalTexture("_VolumeTex", dataTexture);
+            Shader.SetGlobalTexture("_GradientTex", gradientTexture);
         }
         else
         {
@@ -47,15 +62,14 @@ public class VolumeBoundingBox : MonoBehaviour
             emptyTex.Apply();
             Shader.SetGlobalTexture("_VolumeTex", emptyTex);
         }
+    }
+
+    private void UpdateShaderVariables()
+    {
         Shader.SetGlobalVector("_VolumePosition", transform.position);
         Shader.SetGlobalVector("_VolumeScale", transform.localScale);
         Shader.SetGlobalMatrix("_VolumeWorldToLocalMatrix", transform.worldToLocalMatrix);
         Shader.SetGlobalMatrix("_VolumeLocalToWorldMatrix", transform.localToWorldMatrix);
-
-
-
-        float min = Mathf.Max(dataset.minValue, dataset.clampRangeMin);
-        float max = Mathf.Min(dataset.maxValue, dataset.clampRangeMax);
 
         Shader.SetGlobalFloat("_Roughness", Roughness);
         Shader.SetGlobalFloat("_Metallicness", Metallicness);

@@ -55,7 +55,6 @@ public class RayTracingRendererFeature : ScriptableRendererFeature
 
         public RayTracingPass(string name, Settings settings)
         {
-            Debug.Log("Created renderer feature: " + name);
             this.name = name;
             this.material = CoreUtils.CreateEngineMaterial("Hidden/RayTracing");
             material.hideFlags = HideFlags.HideAndDontSave;

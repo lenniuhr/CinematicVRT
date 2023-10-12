@@ -1,0 +1,115 @@
+#pragma kernel GenerateBase
+#pragma kernel GenerateLevel
+
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+static const int OCTREE_SIZE[8] =
+{
+    2 * 2 * 2,
+    4 * 4 * 4,
+    8 * 8 * 8,
+    16 * 16 * 16,
+    32 * 32 * 32,
+    64 * 64 * 64,
+    128 * 128 * 128,
+    256 * 256 * 256,
+};
+
+static const int OCTREE_OFFSET[8] =
+{
+    0,
+    (2 * 2 * 2),
+    (2 * 2 * 2) + (4 * 4 * 4),
+    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8),
+    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8) + (16 * 16 * 16),
+    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8) + (16 * 16 * 16) + (32 * 32 * 32),
+    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8) + (16 * 16 * 16) + (32 * 32 * 32) + (64 * 64 * 64),
+    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8) + (16 * 16 * 16) + (32 * 32 * 32) + (64 * 64 * 64) + (128 * 128 * 128),
+};
+
+static const int3 OFFSETS[8] =
+{
+    int3(0, 0, 0),
+    int3(0, 0, 1),
+    int3(0, 1, 0),
+    int3(0, 1, 1),
+    int3(1, 0, 0),
+    int3(1, 0, 1),
+    int3(1, 1, 0),
+    int3(1, 1, 1),
+};
+
+TEXTURE3D(_VolumeTex);  SAMPLER(sampler_point_clamp);
+
+float4 _VolumeTexelSize;
+
+RWStructuredBuffer<float> _OctreeBuffer;
+
+int _OctreeLevel;
+int _GenerateLevel;
+
+float SampleCell(uint3 id, uint dim)
+{
+    float3 cellMin = id / float3(dim, dim, dim);
+    float3 cellMax = (id + float3(1, 1, 1)) / float3(dim, dim, dim);
+    
+    int3 texelMin = floor(cellMin / _VolumeTexelSize.xyz);
+    int3 texelMax = floor(cellMax / _VolumeTexelSize.xyz);
+
+    float maxVal = 0;
+    for (int x = texelMin.x; x <= texelMax.x; x++)
+    {
+        for (int y = texelMin.y; y <= texelMax.y; y++)
+        {
+            for (int z = texelMin.z; z <= texelMax.z; z++)
+            {
+                float3 uv = float3(x + 0.5, y + 0.5, z + 0.5) * _VolumeTexelSize.xyz;
+                uv = clamp(0, 1, uv);
+                float value = SAMPLE_TEXTURE3D_LOD(_VolumeTex, sampler_point_clamp, uv, 0).r;
+                maxVal = max(maxVal, value);
+            }
+        }
+    }
+    return maxVal;
+}
+
+[numthreads(8, 8, 8)]
+void GenerateBase(uint3 id : SV_DispatchThreadID)
+{
+    uint dim = pow(2, _GenerateLevel);
+    
+    if (id.x >= dim || id.y >= dim || id.z >= dim)
+        return;
+    
+    float3 uv = id / float3(dim, dim, dim);
+    //float value = SAMPLE_TEXTURE3D_LOD(_VolumeTex, sampler_point_clamp, uv, 0).r;
+    
+    float value = SampleCell(id, dim);
+    
+    int index = OCTREE_OFFSET[_GenerateLevel - 1] + (dim * dim * id.z + dim * id.y + id.x);
+    
+    _OctreeBuffer[index] = value;
+}
+
+[numthreads(8, 8, 8)]
+void GenerateLevel(uint3 id : SV_DispatchThreadID)
+{
+    uint dim = pow(2, _GenerateLevel);
+    
+    if (id.x >= dim || id.y >= dim || id.z >= dim)
+        return;
+    
+    float value = 0;
+    for (int i = 0; i < 8; i++)
+    {
+        int3 childId = (id * 2) + OFFSETS[i];
+        uint childDim = pow(2, _GenerateLevel + 1);
+        int childIndex = OCTREE_OFFSET[_GenerateLevel] + (childDim * childDim * childId.z + childDim * childId.y + childId.x);
+        value = max(value, _OctreeBuffer[childIndex]);
+    }
+    
+    int index = OCTREE_OFFSET[_GenerateLevel - 1] + (dim * dim * id.z + dim * id.y + id.x);
+    
+    _OctreeBuffer[index] = value;
+}
+
