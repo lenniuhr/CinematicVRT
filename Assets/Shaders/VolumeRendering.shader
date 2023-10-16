@@ -23,5 +23,29 @@ Shader "Hidden/VolumeRendering"
             #include "Assets/Shaders/VolumeRendering.hlsl"
             ENDHLSL
         }
+
+        Pass
+        {
+            Name "Octree"
+
+            HLSLPROGRAM
+            #pragma vertex DefaultVertex
+            #pragma fragment OctreeFragment
+            #include "Assets/Shaders/DefaultVertex.hlsl"
+            #include "Assets/Shaders/VolumeRendering.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "Raytrace"
+
+            HLSLPROGRAM
+            #pragma vertex DefaultVertex
+            #pragma fragment RaytraceFragment
+            #include "Assets/Shaders/DefaultVertex.hlsl"
+            #include "Assets/Shaders/VolumeRendering.hlsl"
+            ENDHLSL
+        }
     }
 }

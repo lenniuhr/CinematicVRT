@@ -4,6 +4,8 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "Assets/Shaders/DefaultInput.hlsl"
+#include "Assets/Shaders/Octree.hlsl"
+#include "Assets/Shaders/Library/Common.hlsl"
 
 #define BOX_MIN float3(-0.5, -0.5, -0.5)
 #define BOX_MAX float3(0.5, 0.5, 0.5)
@@ -49,16 +51,6 @@ struct HitInfo
     bool didHit;
     float3 hitPoint;
 };
-
-float InverseLerp(float from, float to, float value)
-{
-    return saturate((value - from) / (to - from));
-}
-
-float3 InverseLerp(float3 from, float3 to, float3 value)
-{
-    return saturate((value - from) / (to - from));
-}
 
 HitInfo RayBoundingBox(Ray ray, float3 boxMin, float3 boxMax)
 {
@@ -113,7 +105,7 @@ float SampleDensity(float3 uv)
     {
         return 0;
     }
-    return SAMPLE_TEXTURE3D(_VolumeTex, sampler_VolumeTex, uv).r;
+    return SAMPLE_TEXTURE3D_LOD(_VolumeTex, sampler_VolumeTex, uv, 0).r;
 }
 
 float3 ComputeNormal(float3 uv)
@@ -221,53 +213,14 @@ float3 phongBRDF(float3 lightDir, float3 viewDir, float3 normal, float3 phongDif
   return color;
 }
 
-static const int OCTREE_OFFSET[8] =
-{
-    0,
-    (2 * 2 * 2),
-    (2 * 2 * 2) + (4 * 4 * 4),
-    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8),
-    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8) + (16 * 16 * 16),
-    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8) + (16 * 16 * 16) + (32 * 32 * 32),
-    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8) + (16 * 16 * 16) + (32 * 32 * 32) + (64 * 64 * 64),
-    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8) + (16 * 16 * 16) + (32 * 32 * 32) + (64 * 64 * 64) + (128 * 128 * 128),
-};
-
 #define SMALL_OFFSET 0.0001
 
-StructuredBuffer<float> _OctreeBuffer;
-int _OctreeLevel;
-
-float GetOctreeValue(int level, float3 uv)
+float3 RayOctreeBB(float3 uv, float level, float3 position, float3 dir)
 {
-    int dim = pow(2, level);
+    float dim = OCTREE_DIM[level];
     
-    int x = clamp(floor(uv.x * dim), 0, dim - 1);
-    int y = clamp(floor(uv.y * dim), 0, dim - 1);
-    int z = clamp(floor(uv.z * dim), 0, dim - 1);
-
-    int index = OCTREE_OFFSET[level - 1] + (dim * dim * z + dim * y + x);
-    
-    return _OctreeBuffer[index];
-}
-
-int3 GetOctreeId(int level, float3 uv)
-{
-    int dim = pow(2, level);
-    
-    int x = clamp(floor(uv.x * dim), 0, dim - 1);
-    int y = clamp(floor(uv.y * dim), 0, dim - 1);
-    int z = clamp(floor(uv.z * dim), 0, dim - 1);
-    
-    return int3(x, y, z);
-}
-
-float3 RayOctreeBB(float3 uv, float octreeLevel, float3 position, float3 dir)
-{
-    float octreeDim = pow(2, octreeLevel);
-    
-    float3 cellMin = BOX_MIN + (floor(uv * octreeDim) / octreeDim);
-    float3 cellMax = BOX_MIN + (ceil(uv * octreeDim) / octreeDim); // TODO case when uv * octreedim is exactly integer
+    float3 cellMin = BOX_MIN + (floor(uv * dim) / dim);
+    float3 cellMax = BOX_MIN + (ceil(uv * dim) / dim); // TODO case when uv * octreedim is exactly integer
     
     float3 invDir = 1 / dir;
     float3 tMin = (cellMin - position) * invDir;
@@ -284,17 +237,31 @@ float3 RayOctreeBB(float3 uv, float octreeLevel, float3 position, float3 dir)
 
 int LevelUpTree(int level, float3 uv)
 {
-    while (level < _OctreeLevel)
+    int newLevel = level;
+    while (newLevel < _OctreeLevel)
     {
-        level++;
-        float value = GetOctreeValue(level, uv);
+        newLevel++;
+        float value = GetOctreeValue(newLevel, uv);
         
         if (value <= _Threshold)
         {
             break;
         }
     }
-    return level;
+    return newLevel;
+}
+
+uint NextRandom(inout uint state)
+{
+    state = state * 747796405 + 2891336453;
+    uint result = ((state >> ((state >> 28) + 4)) ^ state) * 277803737;
+    result = (result >> 22) ^ result;
+    return result;
+}
+
+float RandomValue(inout uint state)
+{
+    return NextRandom(state) / 4294967295.0; // 2^32 - 1
 }
 
 float4 RayMarchOctree(float3 position, Ray ray)
@@ -304,12 +271,12 @@ float4 RayMarchOctree(float3 position, Ray ray)
 
     int steps = 0;
     
-    float level = 1;
+    float level = 0;
     
-    float octreeDim = pow(2, level);
+    float octreeDim = OCTREE_DIM[level];
     
     // Octree id
-    int3 octreeId;
+    int3 parentId;
     
     [loop]
     for (int i = 0; i < 720; i++)
@@ -325,7 +292,7 @@ float4 RayMarchOctree(float3 position, Ray ray)
         float value = GetOctreeValue(level, uv);
         
         // Remove
-        int dim = pow(2, level);
+        int dim = OCTREE_DIM[level];
     
         int x = clamp(floor(uv.x * dim), 0, dim - 1);
         int y = clamp(floor(uv.y * dim), 0, dim - 1);
@@ -350,27 +317,30 @@ float4 RayMarchOctree(float3 position, Ray ray)
         if (value > _Threshold)
         {
             level = LevelUpTree(level, uv);
-            octreeId = GetOctreeId(level - 1, uv);
+            parentId = GetOctreeId(level - 1, uv);
+            
+            value = GetOctreeValue(level, uv);
                 
-            if (level >= _OctreeLevel)
+            if (value > _Threshold)
             {
                 output = value;
+                
+                output = RandomValue(index);
                 break;
             }
         }
         else
         {
-            if (level > 1)
+            if (level > 0)
             {
                 int3 currentId = GetOctreeId(level - 1, uv);
-                if (currentId.x != octreeId.x || currentId.y != octreeId.y || currentId.z != octreeId.z)
+                if (currentId.x != parentId.x || currentId.y != parentId.y || currentId.z != parentId.z)
                 {
-                    float higherValue = GetOctreeValue(level - 1, uv);
-                    if (higherValue <= _Threshold)
+                    float parentValue = GetOctreeValue(level - 1, uv);
+                    if (parentValue <= _Threshold)
                     {
-                        level--;
+                            level--;
                     }
-
                 }
             }
         }
@@ -381,9 +351,9 @@ float4 RayMarchOctree(float3 position, Ray ray)
         
         steps++;
     }
-    //return 0;
-    //return 0.4 * step(1.5, steps);
-    return pow((float) steps / 100.0, 1);
+    //return 0.4 * step(4, steps);
+    
+    return pow((float) steps / 80.0, 1);
     return output;
 }
 
@@ -414,10 +384,10 @@ float4 RayMarch(float3 position, Ray ray)
             //return density;
         }
 
-        half3 gradient = SAMPLE_TEXTURE3D(_GradientTex, sampler_GradientTex, uv).xyz * 2 - 1;
+        half3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
 
         float2 transferUV = float2(density, length(gradient));
-        half4 color = SAMPLE_TEXTURE2D(_TransferTex, sampler_TransferTex, transferUV);
+        half4 color = SAMPLE_TEXTURE2D_LOD(_TransferTex, sampler_TransferTex, transferUV, 0);
         
         if(color.a < 0.001)
         {
@@ -470,7 +440,7 @@ float4 RayMarch(float3 position, Ray ray)
         }
     }
 
-    return pow((float) steps / 600.0, 1);
+    //return pow((float) steps / 600.0, 1);
     
     return output;//pow(output, 2.2);
 }
@@ -504,6 +474,34 @@ HitInfo RayBoundingBoxOS(Ray ray)
     return hitInfo;
 };
 
+float4 OctreeFragment(Varyings IN) : SV_TARGET
+{
+    float3 viewPointLocal = float3(IN.uv - 0.5, 1) * _ViewParams;
+    float3 viewPoint = mul(_CamLocalToWorldMatrix, float4(viewPointLocal, 1)).xyz;
+    
+    float3 originWS = _WorldSpaceCameraPos;
+    float3 dirWS = normalize(viewPoint - originWS);
+    
+    Ray ray;
+    ray.origin = mul(_VolumeWorldToLocalMatrix, float4(originWS, 1)).xyz;
+    ray.dir = mul((float3x3) _VolumeWorldToLocalMatrix, dirWS);
+    ray.directionWS = dirWS;
+    
+    HitInfo hit = RayBoundingBoxOS(ray);
+    if (hit.didHit)
+    {
+        half4 output = RayMarchOctree(hit.hitPoint, ray);
+        return output;
+    }
+    return half4(0, 0, 0, 1);
+}
+
+float4 RaytraceFragment(Varyings IN) : SV_TARGET
+{
+    
+    return half4(0.5, 0.001, 0.001, 1);
+}
+
 float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
 {
     float3 viewPointLocal = float3(IN.uv - 0.5, 1) * _ViewParams;
@@ -528,9 +526,7 @@ float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
     
     if (hit.didHit)
     {
-        half4 output = RayMarchOctree(hit.hitPoint, ray);
-        return output;
-
+        half4 output = RayMarch(hit.hitPoint, ray);
         output += (1.0 - output.a) * saturate(skyData);
         return output;
     }
@@ -539,7 +535,7 @@ float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
     //half4 encodedIrradiance = half4(SAMPLE_TEXTURECUBE_LOD(_GlossyEnvironmentCubeMap, sampler_GlossyEnvironmentCubeMap, reflectVector, mip));
     //half3 indirectSpecular = DecodeHDREnvironment(encodedIrradiance, _GlossyEnvironmentCubeMap_HDR);
     
-    return float4(0, 0, 0, 1);
+    //return float4(0, 0, 0, 1);
     return skyData;
 }
 

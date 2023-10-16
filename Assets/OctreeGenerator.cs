@@ -1,14 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 [ExecuteAlways]
 [RequireComponent(typeof(VolumeBoundingBox))]
 public class OctreeGenerator : MonoBehaviour
 {
-    [Range(1, 8)]
+    [Range(0, 7)]
     public int OctreeDepth = 1;
-    [Range(1, 8)]
+    [Range(0, 7)]
     public int OctreeLevel = 1;
 
     public ComputeShader computeShader;
@@ -24,6 +27,8 @@ public class OctreeGenerator : MonoBehaviour
     private void OnEnable()
     {
         m_VolumeBoundingBox = GetComponent<VolumeBoundingBox>();
+
+        if (m_VolumeBoundingBox.GetDataTexture() == null) return;
 
         Initialize();
 
@@ -46,12 +51,17 @@ public class OctreeGenerator : MonoBehaviour
         m_MainKernel = computeShader.FindKernel("GenerateLevel");
 
         Texture3D dataTexture = m_VolumeBoundingBox.GetDataTexture();
+
+        if (dataTexture == null) return;
+
+        // TODO handle texture null
         computeShader.SetTexture(m_BaseKernel, "_VolumeTex", dataTexture);
         computeShader.SetVector("_VolumeTexelSize", new Vector3(1.0f / dataTexture.width, 1.0f / dataTexture.height, 1.0f / dataTexture.depth));
-        Debug.Log($"Volume Texture Texelsize: ({1 / dataTexture.width}, {1 / dataTexture.height}, {1 / dataTexture.depth})...");
 
-        TestSampleCell(OctreeLevel, new Vector3(63, 63, 63), new Vector3(1.0f / dataTexture.width, 1.0f / dataTexture.height, 1.0f / dataTexture.depth), 
-            new Vector3Int(dataTexture.width, dataTexture.height, dataTexture.depth));
+        //Debug.Log($"Volume Texture Texelsize: ({1 / dataTexture.width}, {1 / dataTexture.height}, {1 / dataTexture.depth})...");
+
+        //TestSampleCell(OctreeLevel, new Vector3(63, 63, 63), new Vector3(1.0f / dataTexture.width, 1.0f / dataTexture.height, 1.0f / dataTexture.depth), 
+        //    new Vector3Int(dataTexture.width, dataTexture.height, dataTexture.depth));
     }
 
     private void TestSampleCell(int level, Vector3 id, Vector3 texelSize, Vector3Int pixelSize)
@@ -86,9 +96,9 @@ public class OctreeGenerator : MonoBehaviour
     private int GetOctreeBufferSize()
     {
         int size = 0;
-        for(int i = 1; i <= OctreeDepth; i++)
+        for(int i = 0; i <= OctreeDepth; i++)
         {
-            size += Mathf.RoundToInt(Mathf.Pow(2, i * 3));
+            size += Mathf.RoundToInt(Mathf.Pow(2, (i + 1) * 3));
         }
         return size;
     }
@@ -97,7 +107,7 @@ public class OctreeGenerator : MonoBehaviour
     {
         computeShader.SetInt("_GenerateLevel", level);
 
-        int dim = Mathf.CeilToInt(Mathf.Pow(2, level));
+        int dim = Mathf.CeilToInt(Mathf.Pow(2, level + 1));
 
         Debug.Log($"Generate Octree Level {level} ({dim}, {dim}, {dim})...");
 
@@ -112,7 +122,7 @@ public class OctreeGenerator : MonoBehaviour
 
     private void GenerateOctree()
     {
-        int dim = Mathf.CeilToInt(Mathf.Pow(2, OctreeDepth));
+        int dim = Mathf.CeilToInt(Mathf.Pow(2, OctreeDepth + 1));
 
         int bufferSize = GetOctreeBufferSize();
         Debug.Log($"Octree Buffer Size: {bufferSize}");
@@ -135,7 +145,7 @@ public class OctreeGenerator : MonoBehaviour
         // Generate other levels
         computeShader.SetBuffer(m_MainKernel, "_OctreeBuffer", m_OctreeBuffer);
 
-        for (int level = OctreeDepth - 1; level > 0; level--)
+        for (int level = OctreeDepth - 1; level >= 0; level--)
         {
             GenerateOctreeLevel(level);
         }
@@ -144,5 +154,6 @@ public class OctreeGenerator : MonoBehaviour
         Debug.Log($"Set global shader variables");
         Shader.SetGlobalBuffer("_OctreeBuffer", m_OctreeBuffer);
         Shader.SetGlobalInt("_OctreeLevel", OctreeLevel);
+        Shader.SetGlobalInt("_OctreeDepth", OctreeDepth);
     }
 }

@@ -2,42 +2,7 @@
 #pragma kernel GenerateLevel
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-
-static const int OCTREE_SIZE[8] =
-{
-    2 * 2 * 2,
-    4 * 4 * 4,
-    8 * 8 * 8,
-    16 * 16 * 16,
-    32 * 32 * 32,
-    64 * 64 * 64,
-    128 * 128 * 128,
-    256 * 256 * 256,
-};
-
-static const int OCTREE_OFFSET[8] =
-{
-    0,
-    (2 * 2 * 2),
-    (2 * 2 * 2) + (4 * 4 * 4),
-    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8),
-    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8) + (16 * 16 * 16),
-    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8) + (16 * 16 * 16) + (32 * 32 * 32),
-    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8) + (16 * 16 * 16) + (32 * 32 * 32) + (64 * 64 * 64),
-    (2 * 2 * 2) + (4 * 4 * 4) + (8 * 8 * 8) + (16 * 16 * 16) + (32 * 32 * 32) + (64 * 64 * 64) + (128 * 128 * 128),
-};
-
-static const int3 OFFSETS[8] =
-{
-    int3(0, 0, 0),
-    int3(0, 0, 1),
-    int3(0, 1, 0),
-    int3(0, 1, 1),
-    int3(1, 0, 0),
-    int3(1, 0, 1),
-    int3(1, 1, 0),
-    int3(1, 1, 1),
-};
+#include "Assets/Shaders/Library/OctreeUtils.hlsl"
 
 TEXTURE3D(_VolumeTex);  SAMPLER(sampler_point_clamp);
 
@@ -76,7 +41,7 @@ float SampleCell(uint3 id, uint dim)
 [numthreads(8, 8, 8)]
 void GenerateBase(uint3 id : SV_DispatchThreadID)
 {
-    uint dim = pow(2, _GenerateLevel);
+    uint dim = pow(2, _GenerateLevel + 1);
     
     if (id.x >= dim || id.y >= dim || id.z >= dim)
         return;
@@ -86,7 +51,7 @@ void GenerateBase(uint3 id : SV_DispatchThreadID)
     
     float value = SampleCell(id, dim);
     
-    int index = OCTREE_OFFSET[_GenerateLevel - 1] + (dim * dim * id.z + dim * id.y + id.x);
+    int index = OCTREE_OFFSET[_GenerateLevel] + (dim * dim * id.z + dim * id.y + id.x);
     
     _OctreeBuffer[index] = value;
 }
@@ -94,7 +59,7 @@ void GenerateBase(uint3 id : SV_DispatchThreadID)
 [numthreads(8, 8, 8)]
 void GenerateLevel(uint3 id : SV_DispatchThreadID)
 {
-    uint dim = pow(2, _GenerateLevel);
+    uint dim = pow(2, _GenerateLevel + 1);
     
     if (id.x >= dim || id.y >= dim || id.z >= dim)
         return;
@@ -103,12 +68,12 @@ void GenerateLevel(uint3 id : SV_DispatchThreadID)
     for (int i = 0; i < 8; i++)
     {
         int3 childId = (id * 2) + OFFSETS[i];
-        uint childDim = pow(2, _GenerateLevel + 1);
-        int childIndex = OCTREE_OFFSET[_GenerateLevel] + (childDim * childDim * childId.z + childDim * childId.y + childId.x);
+        uint childDim = pow(2, _GenerateLevel + 2);
+        int childIndex = OCTREE_OFFSET[_GenerateLevel + 1] + (childDim * childDim * childId.z + childDim * childId.y + childId.x);
         value = max(value, _OctreeBuffer[childIndex]);
     }
     
-    int index = OCTREE_OFFSET[_GenerateLevel - 1] + (dim * dim * id.z + dim * id.y + id.x);
+    int index = OCTREE_OFFSET[_GenerateLevel] + (dim * dim * id.z + dim * id.y + id.x);
     
     _OctreeBuffer[index] = value;
 }
