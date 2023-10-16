@@ -237,7 +237,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   OctreeDepth: 7
-  OctreeLevel: 6
+  OctreeLevel: 7
   computeShader: {fileID: 7200000, guid: c9071f97c11b3294e8bdb0acfc110fc2, type: 3}
 --- !u!1 &330585543
 GameObject:
@@ -784,7 +784,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8c7573f41f1980468753fa425e03abe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  transferFunction: {fileID: 11400000, guid: 5954d6f5cfb37084eb6f3bfa17ccd880, type: 2}
+  transferFunction: {fileID: 11400000, guid: 1be84fd6bf5812445a0af9f6f77be66a, type: 2}
   gradient:
     serializedVersion: 2
     key0: {r: 0.7411765, g: 0.7411765, b: 0.7411765, a: 0}

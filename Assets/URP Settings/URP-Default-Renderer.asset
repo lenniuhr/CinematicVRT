@@ -13,14 +13,15 @@ MonoBehaviour:
   m_Name: Volume Rendering
   m_EditorClassIdentifier: 
   m_Active: 1
-  renderMode: 1
+  renderMode: 2
   renderPassEvent: 300
   settings:
-    StepSize: 0.00128
+    StepSize: 0.00001
     NormalOffset: 1
     Threshold: 0.5
   octreeSettings:
-    Threshold: 0.2
+    OctreeLevel: 7
+    Threshold: 0.505
 --- !u!114 &-3347501342411450359
 MonoBehaviour:
   m_ObjectHideFlags: 0

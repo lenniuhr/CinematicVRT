@@ -21,6 +21,7 @@ public class OctreeGenerator : MonoBehaviour
     private int m_BaseKernel;
     private int m_MainKernel;
     private int m_DispatchSize;
+    private bool m_Initialized;
 
     private const int OCTREE_STRIDE = 1 * sizeof(float);
 
@@ -42,7 +43,14 @@ public class OctreeGenerator : MonoBehaviour
 
     private void OnValidate()
     {
-        Shader.SetGlobalInt("_OctreeLevel", OctreeLevel);
+        GenerateOctree();
+    }
+
+    public void RegenerateOctree()
+    {
+        Initialize();
+
+        GenerateOctree();
     }
 
     private void Initialize()
@@ -57,6 +65,8 @@ public class OctreeGenerator : MonoBehaviour
         // TODO handle texture null
         computeShader.SetTexture(m_BaseKernel, "_VolumeTex", dataTexture);
         computeShader.SetVector("_VolumeTexelSize", new Vector3(1.0f / dataTexture.width, 1.0f / dataTexture.height, 1.0f / dataTexture.depth));
+
+        m_Initialized = true;
 
         //Debug.Log($"Volume Texture Texelsize: ({1 / dataTexture.width}, {1 / dataTexture.height}, {1 / dataTexture.depth})...");
 
@@ -122,6 +132,8 @@ public class OctreeGenerator : MonoBehaviour
 
     private void GenerateOctree()
     {
+        if (!m_Initialized) return;
+
         int dim = Mathf.CeilToInt(Mathf.Pow(2, OctreeDepth + 1));
 
         int bufferSize = GetOctreeBufferSize();
