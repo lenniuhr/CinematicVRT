@@ -1,7 +1,5 @@
-using FellowOakDicom;
 using System;
 using System.Threading.Tasks;
-using Unity.Mathematics;
 using UnityEngine;
 
 public class VolumeDataset : ScriptableObject
@@ -23,6 +21,16 @@ public class VolumeDataset : ScriptableObject
     private Texture3D dataTexture;
     private Texture3D gradientTexture;
     private Texture2D histogram;
+
+    public float GetMinValue()
+    {
+        return Mathf.Max(minValue, clampRangeMin);
+    }
+
+    public float GetMaxValue()
+    {
+        return Mathf.Min(maxValue, clampRangeMax);
+    }
 
     public async Task<Texture3D> GetTexture()
     {

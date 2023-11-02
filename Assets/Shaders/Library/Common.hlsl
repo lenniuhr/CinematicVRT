@@ -11,4 +11,9 @@ float3 InverseLerp(float3 from, float3 to, float3 value)
     return saturate((value - from) / (to - from));
 }
 
+float4 InverseLerpVector4(float4 from, float4 to, float4 value)
+{
+    return saturate((value - from) / (to - from));
+}
+
 #endif

@@ -40,6 +40,11 @@ public class VolumeBoundingBox : MonoBehaviour
         return dataTexture;
     }
 
+    public Texture3D GetGradientexture()
+    {
+        return gradientTexture;
+    }
+
     public async void ReloadTextures()
     {
         if (dataset == null) return;

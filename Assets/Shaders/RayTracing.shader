@@ -18,7 +18,7 @@ Shader "Hidden/RayTracing"
             HLSLPROGRAM
             #pragma vertex DefaultVertex
             #pragma fragment AccumulateFragment
-            #include "Assets/Shaders/DefaultVertex.hlsl"
+            #include "Assets/Shaders/Library/DefaultVertex.hlsl"
             #include "Assets/Shaders/RayTracing.hlsl"
             ENDHLSL
         }
@@ -29,7 +29,7 @@ Shader "Hidden/RayTracing"
             HLSLPROGRAM
             #pragma vertex DefaultVertex
             #pragma fragment CopyFragment
-            #include "Assets/Shaders/DefaultVertex.hlsl"
+            #include "Assets/Shaders/Library/DefaultVertex.hlsl"
             #include "Assets/Shaders/RayTracing.hlsl"
             ENDHLSL
         }
@@ -40,7 +40,7 @@ Shader "Hidden/RayTracing"
             HLSLPROGRAM
             #pragma vertex DefaultVertex
             #pragma fragment RayTracingFragment
-            #include "Assets/Shaders/DefaultVertex.hlsl"
+            #include "Assets/Shaders/Library/DefaultVertex.hlsl"
             #include "Assets/Shaders/RayTracing.hlsl"
             ENDHLSL
         }

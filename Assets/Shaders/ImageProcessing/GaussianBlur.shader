@@ -21,8 +21,8 @@ Shader "Hidden/GaussianBlur"
             HLSLPROGRAM
             #pragma vertex DefaultVertex
             #pragma fragment GaussianBlurFragment
-            #include "Assets/Shaders/DefaultVertex.hlsl"
-            #include "Assets/Shaders/GaussianBlur.hlsl"
+            #include "Assets/Shaders/Library/DefaultVertex.hlsl"
+            #include "Assets/Shaders/ImageProcessing/GaussianBlur.hlsl"
             ENDHLSL
         }
     }

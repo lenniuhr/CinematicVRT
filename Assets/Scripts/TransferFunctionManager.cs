@@ -8,7 +8,7 @@ public class TransferFunctionManager : MonoBehaviour
 
     public Gradient gradient = null;
 
-    private const int WIDTH = 1024;
+    private const int WIDTH = 1500;
 
     private void OnEnable()
     {
@@ -17,7 +17,11 @@ public class TransferFunctionManager : MonoBehaviour
 
     private void OnValidate()
     {
+        if (!enabled) return;//
+
         GenerateTransferTex();
+
+        Update1DTransferTex();
     }
 
     public void GenerateTransferTex()
@@ -39,7 +43,7 @@ public class TransferFunctionManager : MonoBehaviour
         return transferFunction;
     }
 
-    private void UpdateTexture()
+    private void Update1DTransferTex()
     {
         if (gradient == null) return;
 
@@ -55,5 +59,7 @@ public class TransferFunctionManager : MonoBehaviour
             texture.SetPixel(i, 0, gradient.Evaluate(t));
         }
         texture.Apply(false);
+
+        Shader.SetGlobalTexture("_1DTransferTex", texture);
     }
 }

@@ -11,7 +11,29 @@ Shader "Hidden/CinematicRendering"
         ZTest Off 
 		ZWrite Off
         Cull Off
+        
+        Pass
+        {
+            Name "Accumulate"
 
+            HLSLPROGRAM
+            #pragma vertex DefaultVertex
+            #pragma fragment AccumulateFragment
+            #include "Assets/Shaders/Library/DefaultVertex.hlsl"
+            #include "Assets/Shaders/CinematicRendering.hlsl"
+            ENDHLSL
+        }
+        Pass
+        {
+            Name "Copy"
+
+            HLSLPROGRAM
+            #pragma vertex DefaultVertex
+            #pragma fragment CopyFragment
+            #include "Assets/Shaders/Library/DefaultVertex.hlsl"
+            #include "Assets/Shaders/CinematicRendering.hlsl"
+            ENDHLSL
+        }
         Pass
         {
             Name "Ray Tracing"
@@ -19,8 +41,8 @@ Shader "Hidden/CinematicRendering"
             HLSLPROGRAM
             #pragma vertex DefaultVertex
             #pragma fragment RaytraceFragment
-            #include "Assets/Shaders/DefaultVertex.hlsl"
-            #include "Assets/Shaders/VolumeRendering.hlsl"
+            #include "Assets/Shaders/Library/DefaultVertex.hlsl"
+            #include "Assets/Shaders/CinematicRendering.hlsl"
             ENDHLSL
         }
     }

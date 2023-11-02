@@ -2,8 +2,8 @@
 #define RAYTRACING_INCLUDED
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-#include "Assets/Shaders/RayTracingUtils.hlsl"
-#include "Assets/Shaders/DefaultInput.hlsl"
+#include "Assets/Shaders/Library/RayTracingUtils.hlsl"
+#include "Assets/Shaders/Library/DefaultInput.hlsl"
 
 TEXTURE2D(_CopyTex);    SAMPLER(sampler_point_clamp);
 TEXTURE2D(_ResultTex);    

@@ -19,6 +19,8 @@ public class TextureGenerator : MonoBehaviour
 
     private Material material;
 
+    public int Slice;
+
     public FilterMode filterMode;
     [Range(0, 10)]
     public int kernelRadius;
@@ -119,6 +121,70 @@ public class TextureGenerator : MonoBehaviour
         //double max = iPixelData.GetMinMax().Maximum;
 
         Debug.Log("Value range: [" + min + ", " + max + "]");
+    }
+
+    public void SaveCTSlice(string filename)
+    {
+        Texture3D current = GameObject.FindFirstObjectByType<VolumeBoundingBox>().GetDataTexture();
+
+        Debug.Log("3D Texture Format: " + current.format);
+
+        Texture2D result = new Texture2D(current.width, current.height, current.format, false, true);
+
+        for (int x = 0; x < current.width; x++)
+        {
+            for (int y = 0; y < current.height; y++)
+            {
+                Color color = current.GetPixel(x, y, Slice);
+
+                if (color.r > 0.5f && color.r < 0.7f) // Bone
+                {
+                    //color = Color.white;
+                }
+                else
+                {
+                    //color = Color.black;
+                }
+
+                //color = new Color(0.25f, 0.25f, 0.25f, 1);
+
+                /*if(color.r > 0.8f) // Metal
+                {
+                    color = Color.green;
+                }
+                else if (color.r > 0.5f && color.r < 0.6f) // Bone
+                {
+                    color = Color.red;
+                }
+                else if (color.r > 0.38f && color.r < 0.41f) // Vessels
+                {
+                    color = Color.yellow;
+                }
+                else if (color.r > 0.3f && color.r < 0.35f)
+                {
+                    color = Color.blue;
+                }
+                else if (color.r < 0.12f)
+                {
+                    color = Color.black;
+                }*/
+                //apply the color corresponding to the slice we are on, and the x and y pixel of that slice.
+                result.SetPixel(x, y, color);
+            }
+        }
+        result.Apply();
+
+
+        byte[] bytes = result.EncodeToPNG();
+        string dirPath = Application.dataPath + "/Textures/";
+
+        if (!Directory.Exists(dirPath))
+        {
+            Directory.CreateDirectory(dirPath);
+        }
+        File.WriteAllBytes(dirPath + filename + ".png", bytes);
+
+        Debug.Log("Saved file to: " + dirPath);
     }
 
     private void SaveTexture2D(RenderTexture rt, TextureFormat textureFormat, string filename)

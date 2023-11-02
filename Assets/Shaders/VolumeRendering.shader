@@ -2,9 +2,9 @@ Shader "Hidden/VolumeRendering"
 {
     Properties
     {
-        _StepSize("Step Size", Float) = 0.004
-        _NormalOffset("Normal Offset", Float) = 1
-        _Threshold("Threshold", Float) = 0.5
+        _StepSize("Step Size", Float) = 0.001
+        _Threshold("Threshold", Float) = 0.04
+        _Color("Color", Color) = (1,1,1,1)
     }
     SubShader
     {
@@ -19,31 +19,7 @@ Shader "Hidden/VolumeRendering"
             HLSLPROGRAM
             #pragma vertex DefaultVertex
             #pragma fragment VolumeRenderingFragment
-            #include "Assets/Shaders/DefaultVertex.hlsl"
-            #include "Assets/Shaders/VolumeRendering.hlsl"
-            ENDHLSL
-        }
-
-        Pass
-        {
-            Name "Octree"
-
-            HLSLPROGRAM
-            #pragma vertex DefaultVertex
-            #pragma fragment OctreeFragment
-            #include "Assets/Shaders/DefaultVertex.hlsl"
-            #include "Assets/Shaders/VolumeRendering.hlsl"
-            ENDHLSL
-        }
-
-        Pass
-        {
-            Name "Raytrace"
-
-            HLSLPROGRAM
-            #pragma vertex DefaultVertex
-            #pragma fragment RaytraceFragment
-            #include "Assets/Shaders/DefaultVertex.hlsl"
+            #include "Assets/Shaders/Library/DefaultVertex.hlsl"
             #include "Assets/Shaders/VolumeRendering.hlsl"
             ENDHLSL
         }

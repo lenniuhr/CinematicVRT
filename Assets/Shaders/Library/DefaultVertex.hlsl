@@ -2,7 +2,7 @@
 #define DEFAULT_VERTEX_INCLUDED
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-#include "Assets/Shaders/DefaultInput.hlsl"
+#include "Assets/Shaders/Library/DefaultInput.hlsl"
 
 Varyings DefaultVertex(uint vertexID : SV_VertexID) {
 	Varyings OUT;

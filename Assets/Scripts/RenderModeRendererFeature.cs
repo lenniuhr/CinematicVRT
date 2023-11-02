@@ -2,20 +2,16 @@ using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
-using static UnityEngine.GraphicsBuffer;
 using static UnityEngine.Mathf;
 
-public class VolumeRenderingRendererFeature : ScriptableRendererFeature
+public class RenderModeRendererFeature : ScriptableRendererFeature
 {
     [Serializable]
     public class Settings
     {
-        [Range(0.00001f, 0.01f)]
-        public float StepSize = 0.004f;
-        [Range(0, 2)]
-        public float NormalOffset = 1f;
-        [Range(0, 1)]
-        public float Threshold = 0.2f;
+        public float StepSize = 0.001f;
+        public float Threshold = 0.5f;
+        public Color Color = Color.white;
     }
 
     [Serializable]
@@ -25,12 +21,20 @@ public class VolumeRenderingRendererFeature : ScriptableRendererFeature
         public float Threshold = 0.5f;
     }
 
+    [Serializable]
+    public class CinematicSettings
+    {
+        public float Threshold = 0.5f;
+        public Color Color = Color.white;
+    }
+
     public RenderMode renderMode = RenderMode.VOLUME;
-    public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRendering;
+    public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
     private ScriptableRenderPass m_RenderPass;
 
     public Settings settings = new Settings();
     public OctreeSettings octreeSettings = new OctreeSettings();
+    public CinematicSettings cinematicSettings = new CinematicSettings();
 
     public enum RenderMode
     {
@@ -45,15 +49,12 @@ public class VolumeRenderingRendererFeature : ScriptableRendererFeature
         {
             case RenderMode.VOLUME:
                 m_RenderPass = new VolumeRenderPass(settings);
-                Debug.Log($"Created Volume Render Pass");
                 break;
             case RenderMode.OCTREE:
                 m_RenderPass = new OctreeRenderPass(octreeSettings);
-                Debug.Log($"Created Octree Render Pass");
                 break;
             case RenderMode.RAYTRACE:
-                m_RenderPass = new CinematicRenderPass(settings);
-                Debug.Log($"Created Cinematic Render Pass");
+                m_RenderPass = new CinematicRenderPass(cinematicSettings);
                 break;
         }
         m_RenderPass.renderPassEvent = renderPassEvent;
@@ -61,7 +62,6 @@ public class VolumeRenderingRendererFeature : ScriptableRendererFeature
 
     private void OnValidate()
     {
-        Debug.Log("Value change");
         Create();
     }
 
@@ -81,17 +81,30 @@ public class VolumeRenderingRendererFeature : ScriptableRendererFeature
         private Material material;
         private RenderTargetIdentifier sourceID;
 
+        private int copyTexShaderId = Shader.PropertyToID("_CopyTex");
+
+        private RenderTargetHandle prevFrame;
+        private RenderTargetHandle currentFrame;
+
+        private RenderTexture resultTexture;
+
         int frameID = 0;
         
         enum Pass
         {
+            Accumulate,
+            Copy,
             RayTracing
         }
 
-        public CinematicRenderPass(Settings settings)
+        public CinematicRenderPass(CinematicSettings settings)
         {
             this.material = CoreUtils.CreateEngineMaterial("Hidden/CinematicRendering");
             material.hideFlags = HideFlags.HideAndDontSave;
+            material.SetFloat("_Threshold", settings.Threshold);
+            material.SetColor("_Color", settings.Color.linear);
+
+            frameID = 0;
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -102,7 +115,26 @@ public class VolumeRenderingRendererFeature : ScriptableRendererFeature
 
             sourceID = renderingData.cameraData.renderer.cameraColorTarget;
 
-            frameID = 0;
+            desc.colorFormat = RenderTextureFormat.ARGBFloat;
+
+            // Accumulation texture
+            if (resultTexture == null)
+            {
+                resultTexture = new RenderTexture(desc);
+                resultTexture.Create();
+            }
+
+            currentFrame.Init("_CurrentFrame");
+            prevFrame.Init("_PrevFrame");
+
+            cmd.GetTemporaryRT(currentFrame.id, desc, FilterMode.Point);
+            cmd.GetTemporaryRT(prevFrame.id, desc, FilterMode.Point);
+        }
+
+        public override void OnCameraCleanup(CommandBuffer cmd)
+        {
+            cmd.ReleaseTemporaryRT(currentFrame.id);
+            cmd.ReleaseTemporaryRT(prevFrame.id);
         }
 
         void UpdateCameraParams(Camera cam)
@@ -123,19 +155,55 @@ public class VolumeRenderingRendererFeature : ScriptableRendererFeature
             cmd.DrawProcedural(Matrix4x4.identity, material, (int)pass, MeshTopology.Triangles, 3);
         }
 
+        private void Draw(CommandBuffer cmd, Pass pass)
+        {
+            cmd.DrawProcedural(Matrix4x4.identity, material, (int)pass, MeshTopology.Triangles, 3);
+        }
+
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get(name);
+
+            material.SetInt("_FrameID", frameID);
 
             using (new ProfilingScope(cmd, new ProfilingSampler(name)))
             {
                 cmd.BeginSample(name);
 
-                /*
-                // Create copy of previous frame
-                cmd.SetGlobalTexture(copyTex, currentFrame.id);
-                Draw(cmd, sourceID, prevFrame.id, Pass.Copy);
+                
+                // Copy "resultTexture" to "prevFrame"
+                cmd.SetGlobalTexture("_CopyTex", resultTexture);
+                cmd.SetRenderTarget(prevFrame.id);
+                Draw(cmd, Pass.Copy);
 
+                // Render RayTracing Pass to "currentFrame"
+                cmd.SetRenderTarget(currentFrame.id);
+                cmd.ClearRenderTarget(RTClearFlags.All, Color.clear, 0, 255);
+                Draw(cmd, Pass.RayTracing);
+
+                // Accumulate "currentFrame" and "prevFrame" together to "resultTexture"
+                //cmd.SetGlobalTexture("_PrevFrame", prevFrame.id);
+                //cmd.SetGlobalTexture("_CurrentFrame", currentFrame.id);
+                cmd.SetRenderTarget(resultTexture);
+                Draw(cmd, Pass.Accumulate);
+
+                // Copy current frame to result texture
+                //cmd.SetGlobalTexture("_CopyTex", currentFrame.id);
+                //cmd.SetRenderTarget(resultTexture);
+                //cmd.DrawProcedural(Matrix4x4.identity, material, (int)Pass.Copy, MeshTopology.Triangles, 3);
+
+                // Copy "resultTexture" to source
+                cmd.SetGlobalTexture("_CopyTex", prevFrame.id);
+                cmd.SetRenderTarget(sourceID);
+                Draw(cmd, Pass.Copy);
+                
+                /*
+                cmd.SetRenderTarget(sourceID);
+                cmd.ClearRenderTarget(RTClearFlags.All, Color.clear, 0, 255);
+                Draw(cmd, Pass.RayTracing);
+                */
+
+                /*
                 // Clear result texture
                 cmd.SetRenderTarget(result.id, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
                 cmd.ClearRenderTarget(RTClearFlags.All, Color.clear, 0, 255);
@@ -144,21 +212,29 @@ public class VolumeRenderingRendererFeature : ScriptableRendererFeature
                 Draw(cmd, sourceID, result.id, Pass.RayTracing);
 
                 // Accumulate
+                cmd.SetGlobalTexture(prevFrameShaderId, prevRT);
                 Draw(cmd, sourceID, currentFrame.id, Pass.Accumulate);
 
-                // Copy from current frame texture to camera source
-                cmd.SetGlobalTexture(copyTex, currentFrame.id);
-                Draw(cmd, sourceID, sourceID, Pass.Copy);
-                frameID++;
-                */
+                // Copy to previous frame RT
+                cmd.SetGlobalTexture(copyTexShaderId, currentFrame.id);
+                cmd.SetRenderTarget(prevRT, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
+                cmd.DrawProcedural(Matrix4x4.identity, material, (int)Pass.Copy, MeshTopology.Triangles, 3);
 
-                Draw(cmd, sourceID, sourceID, Pass.RayTracing);
+                // Copy from current frame texture to camera source
+                cmd.SetGlobalTexture(copyTexShaderId, currentFrame.id);
+                Draw(cmd, sourceID, sourceID, Pass.Copy);
+
+                // Make sure that the render target is reset to the source
+                cmd.SetRenderTarget(sourceID);
+                */
 
                 cmd.EndSample(name);
             }
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
+
+            frameID++;
         }
     }
 
@@ -181,8 +257,8 @@ public class VolumeRenderingRendererFeature : ScriptableRendererFeature
             material.hideFlags = HideFlags.HideAndDontSave;
 
             material.SetFloat("_StepSize", settings.StepSize);
-            material.SetFloat("_NormalOffset", settings.NormalOffset);
             material.SetFloat("_Threshold", settings.Threshold);
+            material.SetColor("_Color", settings.Color);
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)

@@ -2,7 +2,7 @@
 #define BLUR_IMAGE_INCLUDED
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-#include "Assets/Shaders/DefaultInput.hlsl"
+#include "Assets/Shaders/Library/DefaultInput.hlsl"
 
 TEXTURE2D(_MainTex);    SAMPLER(sampler_point_clamp);
 float4 _MainTex_TexelSize;

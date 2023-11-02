@@ -1,9 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Reflection;
 using UnityEngine;
-using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
 
 [ExecuteAlways]
 [RequireComponent(typeof(VolumeBoundingBox))]
@@ -11,8 +6,6 @@ public class OctreeGenerator : MonoBehaviour
 {
     [Range(0, 7)]
     public int OctreeDepth = 1;
-    [Range(0, 7)]
-    public int OctreeLevel = 1;
 
     public ComputeShader computeShader;
 
@@ -43,6 +36,8 @@ public class OctreeGenerator : MonoBehaviour
 
     private void OnValidate()
     {
+        if (!enabled) return;
+
         GenerateOctree();
     }
 
@@ -62,7 +57,6 @@ public class OctreeGenerator : MonoBehaviour
 
         if (dataTexture == null) return;
 
-        // TODO handle texture null
         computeShader.SetTexture(m_BaseKernel, "_VolumeTex", dataTexture);
         computeShader.SetVector("_VolumeTexelSize", new Vector3(1.0f / dataTexture.width, 1.0f / dataTexture.height, 1.0f / dataTexture.depth));
 
@@ -121,13 +115,7 @@ public class OctreeGenerator : MonoBehaviour
 
         Debug.Log($"Generate Octree Level {level} ({dim}, {dim}, {dim})...");
 
-        computeShader.GetKernelThreadGroupSizes(m_MainKernel, out uint threadGroupSizeX, out uint threadGroupSizeY, out uint threadGroupSizeZ);
-        int threadGroupsX = Mathf.CeilToInt(dim / (float)threadGroupSizeX);
-        int threadGroupsY = Mathf.CeilToInt(dim / (float)threadGroupSizeY);
-        int threadGroupsZ = Mathf.CeilToInt(dim / (float)threadGroupSizeZ);
-
-        Debug.Log($"Dispatch Size: ({threadGroupsX}, {threadGroupsY}, {threadGroupsZ})");
-        computeShader.Dispatch(m_MainKernel, threadGroupsX, threadGroupsY, threadGroupsZ);
+        ShaderHelper.Dispatch(computeShader, m_MainKernel, dim, dim, dim);
     }
 
     private void GenerateOctree()
@@ -135,24 +123,17 @@ public class OctreeGenerator : MonoBehaviour
         if (!m_Initialized) return;
 
         int dim = Mathf.CeilToInt(Mathf.Pow(2, OctreeDepth + 1));
-
+        
         int bufferSize = GetOctreeBufferSize();
         Debug.Log($"Octree Buffer Size: {bufferSize}");
+        ShaderHelper.CreateStructuredBuffer<float>(ref m_OctreeBuffer, bufferSize);
 
         // Generate base level
         Debug.Log($"Generate Octree Base {OctreeDepth} ({dim}, {dim}, {dim})...");
-        m_OctreeBuffer = new ComputeBuffer(bufferSize, OCTREE_STRIDE, ComputeBufferType.Structured);
-
         computeShader.SetBuffer(m_BaseKernel, "_OctreeBuffer", m_OctreeBuffer);
         computeShader.SetInt("_GenerateLevel", OctreeDepth);
 
-        computeShader.GetKernelThreadGroupSizes(m_BaseKernel, out uint threadGroupSizeX, out uint threadGroupSizeY, out uint threadGroupSizeZ);
-        int threadGroupsX = Mathf.CeilToInt(dim / (float)threadGroupSizeX);
-        int threadGroupsY = Mathf.CeilToInt(dim / (float)threadGroupSizeY);
-        int threadGroupsZ = Mathf.CeilToInt(dim / (float)threadGroupSizeZ);
-
-        Debug.Log($"Dispatch Size: ({threadGroupsX}, {threadGroupsY}, {threadGroupsZ})");
-        computeShader.Dispatch(m_BaseKernel, threadGroupsX, threadGroupsY, threadGroupsZ);
+        ShaderHelper.Dispatch(computeShader, m_BaseKernel, dim, dim, dim);
 
         // Generate other levels
         computeShader.SetBuffer(m_MainKernel, "_OctreeBuffer", m_OctreeBuffer);
@@ -165,7 +146,6 @@ public class OctreeGenerator : MonoBehaviour
         // Set to global
         Debug.Log($"Set global shader variables");
         Shader.SetGlobalBuffer("_OctreeBuffer", m_OctreeBuffer);
-        Shader.SetGlobalInt("_OctreeLevel", OctreeLevel);
         Shader.SetGlobalInt("_OctreeDepth", OctreeDepth);
     }
 }

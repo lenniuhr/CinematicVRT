@@ -2,7 +2,7 @@
 #define GAUSSIAN_BLUR_INCLUDED
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-#include "Assets/Shaders/DefaultInput.hlsl"
+#include "Assets/Shaders/Library/DefaultInput.hlsl"
 
 TEXTURE2D(_MainTex);    SAMPLER(sampler_MainTex);
 float4 _MainTex_TexelSize;

@@ -17,8 +17,8 @@ Shader "Hidden/TransferTexture"
             HLSLPROGRAM
             #pragma vertex DefaultVertex
             #pragma fragment GenerateTransferTexturePreviewFragment
-            #include "Assets/Shaders/DefaultVertex.hlsl"
-            #include "Assets/Shaders/DefaultInput.hlsl"
+            #include "Assets/Shaders/Library/DefaultVertex.hlsl"
+            #include "Assets/Shaders/Library/DefaultInput.hlsl"
 
             struct Line
             {

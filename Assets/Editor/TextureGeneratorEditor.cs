@@ -20,5 +20,10 @@ public class TextureGeneratorEditor : Editor
         {
             generator.BlurTexture3D();
         }
+
+        if (GUILayout.Button("Save Slice As Texture"))
+        {
+            generator.SaveCTSlice("slice");
+        }
     }
 }

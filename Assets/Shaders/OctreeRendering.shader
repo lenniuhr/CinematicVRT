@@ -2,9 +2,8 @@ Shader "Hidden/OctreeRendering"
 {
     Properties
     {
-        _StepSize("Step Size", Float) = 0.004
-        _NormalOffset("Normal Offset", Float) = 1
         _Threshold("Threshold", Float) = 0.5
+        _OctreeLevel("Octree Level", Float) = 7
     }
     SubShader
     {
@@ -14,13 +13,13 @@ Shader "Hidden/OctreeRendering"
 
         Pass
         {
-            Name "Octree"
+            Name "OctreeRendering"
 
             HLSLPROGRAM
             #pragma vertex DefaultVertex
             #pragma fragment OctreeFragment
-            #include "Assets/Shaders/DefaultVertex.hlsl"
-            #include "Assets/Shaders/VolumeRendering.hlsl"
+            #include "Assets/Shaders/Library/DefaultVertex.hlsl"
+            #include "Assets/Shaders/OctreeRendering.hlsl"
             ENDHLSL
         }
     }

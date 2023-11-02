@@ -16,9 +16,9 @@ public class ChangeRenderMode : MonoBehaviour
 
         foreach (var feature in features)
         {
-            if (feature.GetType() == typeof(VolumeRenderingRendererFeature))
+            if (feature.GetType() == typeof(RenderModeRendererFeature))
             {
-                (feature as VolumeRenderingRendererFeature).UpdateRenderMode(VolumeRenderingRendererFeature.RenderMode.OCTREE);
+                (feature as RenderModeRendererFeature).UpdateRenderMode(RenderModeRendererFeature.RenderMode.OCTREE);
             }
         }
     }
