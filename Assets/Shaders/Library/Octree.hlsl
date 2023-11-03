@@ -51,6 +51,82 @@ int3 GetOctreeId(int level, float3 uv)
     return int3(x, y, z);
 }
 
+float3 GetOctreeNormal(int level, int3 octreeId, float3 uv)
+{
+    float dim = OCTREE_DIM[level];
+    float3 innerBorder01 = (((float3) octreeId + float3(0.5, 0.5, 0.5)) / (float) dim);
+    
+    float3 distance = uv - innerBorder01;
+    
+    if (abs(distance.x) > abs(distance.y) && abs(distance.x) > abs(distance.z))
+    {
+        return sign(distance.x) * float3(1, 0, 0);
+    }
+    else if (abs(distance.y) > abs(distance.x) && abs(distance.y) > abs(distance.z))
+    {
+        return sign(distance.y) * float3(0, 1, 0);
+    }
+    else if (abs(distance.z) > abs(distance.x) && abs(distance.z) > abs(distance.y))
+    {
+        return sign(distance.z) * float3(0, 0, 1);
+    }
+    return float3(0, 0, 0);
+}
+
+int3 GetChildOctreeId(int parentLevel, int3 parentId, float3 uv)
+{
+    // Calculate the inner borders between the 8 child cells
+    float dim = OCTREE_DIM[parentLevel];
+    float3 innerBorder01 = (((float3) parentId + float3(0.5, 0.5, 0.5)) / (float) dim);
+    
+    // Child id is in range [2 * parentId, 2 * parentId + 1]
+    int3 offset = 0;
+    offset.x = (uv.x > innerBorder01.x) ? 1 : 0;
+    offset.y = (uv.y > innerBorder01.y) ? 1 : 0;
+    offset.z = (uv.z > innerBorder01.z) ? 1 : 0;
+    
+    int3 childId = parentId * 2 + offset;
+    return childId;
+}
+
+void IncreaseOctreeLevel(inout int level, inout int3 octreeId, float3 uv, float threshold, int maxLevel = 7)
+{
+    while (level < maxLevel)
+    {
+        octreeId = GetChildOctreeId(level, octreeId, uv);
+        level++;
+        
+        // When value is lesser than threshold, stay on this level
+        float value = GetOctreeValueById(level, octreeId);
+        if (value <= threshold)
+        {
+            break;
+        }
+    }
+}
+
+void ReduceOctreeLevel(inout int level, inout int3 octreeId, float threshold)
+{
+    for (int p = 0; p < 8; p++)
+    {
+        if (level <= 0)
+            break;
+                    
+        int3 parentId = floor(octreeId / 2);
+        float parentValue = GetOctreeValueById(level - 1, parentId);
+        if (parentValue <= threshold)
+        {
+            level--;
+            octreeId = parentId;
+            parentId = floor(octreeId / 2);
+        }
+        else
+        {
+            break;
+        }
+    }
+}
+
 void RayOctree(int level, int3 currentId, float3 position, float3 dirOS, out int3 newId, out float3 newPos)
 {
     // Get the number of cells in the current octree level
@@ -69,7 +145,6 @@ void RayOctree(int level, int3 currentId, float3 position, float3 dirOS, out int
     float3 t = (cellBorder - position) * invDir;
     
     // TODO control if t is positive
-    
     if (t.x < t.y && t.x < t.z)
     {
         newId = currentId + sign(dirOS.x) * int3(1, 0, 0);

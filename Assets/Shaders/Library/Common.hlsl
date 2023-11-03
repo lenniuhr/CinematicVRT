@@ -16,4 +16,9 @@ float4 InverseLerpVector4(float4 from, float4 to, float4 value)
     return saturate((value - from) / (to - from));
 }
 
+bool Equals(int3 a, int3 b)
+{
+    return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+
 #endif

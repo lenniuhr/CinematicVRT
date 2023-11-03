@@ -57,6 +57,110 @@ float3 ComputeNormal(float3 uv)
 
 StructuredBuffer<float> _ClassifyBuffer;
 
+HitInfo RaymarchCell(int level, int3 currentId, float3 position, float3 dirOS, out int3 newId, out float3 newPos)
+{
+    HitInfo hitInfo = (HitInfo)0;
+    
+    RayOctree(level, currentId, position, dirOS, newId, newPos);
+    
+    // TODO: do i need to check at position and newPos ?
+    
+    float3 t = newPos - position;
+    float3 step = t / 10;
+    for (int i = 0; i <= 10; i++)
+    {
+        float3 stepPos = position + i * step;
+        
+        
+        float3 uv = GetVolumeCoords(stepPos);
+        float density = SampleDensity(uv);
+                    
+        if (density > _Threshold)
+        {
+            // Surface hit
+            float3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
+            float3 normalOS = normalize(gradient);
+                
+            hitInfo.didHit = true;
+            hitInfo.hitPointOS = position;
+            hitInfo.normalOS = normalOS;
+            hitInfo.material.color = normalize(normalOS) * 0.5 + 0.5;
+                
+            return hitInfo;
+        }
+    }
+    hitInfo.didHit = false;
+    return hitInfo;
+}
+
+HitInfo RayMarchOctree(float3 position, Ray ray)
+{
+    HitInfo hitInfo = (HitInfo) 0;
+    
+    int steps = 0;    
+    int octreeLevel = 0;
+    float3 uv = GetVolumeCoords(position);
+    int3 octreeId = GetOctreeId(octreeLevel, uv);
+    
+    [loop]
+    for (int i = 0; i < 256; i++)
+    {
+        float value = GetOctreeValueById(octreeLevel, octreeId);
+        
+        // when the current cell is above the threshold, increase the octree level
+        if (value > _Threshold)
+        {
+            uv = GetVolumeCoords(position);
+            
+            IncreaseOctreeLevel(octreeLevel, octreeId, uv, _Threshold);
+            
+            // When the threshold is reached on max level, break
+            value = GetOctreeValueById(octreeLevel, octreeId);
+            if (octreeLevel >= 7 && value > _Threshold)
+            {
+                // TODO: Raymarch octree cell
+                float3 hitPoint;
+                int3 nextId;
+                hitInfo = RaymarchCell(octreeLevel, octreeId, position, ray.dirOS, nextId, hitPoint);
+                
+                if (hitInfo.didHit)
+                    return hitInfo;
+            }
+        }
+        else
+        {
+            // Check if the octree level can be lowered again
+            if (octreeLevel > 0)
+            {
+                ReduceOctreeLevel(octreeLevel, octreeId, _Threshold);
+            }
+        }
+        
+        float3 hitPoint;
+        int3 nextId;
+        RayOctree(octreeLevel, octreeId, position, ray.dirOS, nextId, hitPoint);
+        
+        if (Equals(nextId, octreeId))
+        {
+            hitInfo.didHit = true;
+            hitInfo.material.color = float4(1, 1, 1, 1);
+            return hitInfo;
+        }
+            
+        position = hitPoint;
+        octreeId = nextId;
+        steps++;
+        
+        // Break when the octree id is out of bounds
+        if (IsInvalid(octreeLevel, octreeId))
+        {
+            break;
+        }
+    }
+    
+    return hitInfo;
+}
+
 float4 RayMarch(float3 position, Ray ray)
 {
     float3 step = ray.dirOS * _StepSize;
@@ -194,8 +298,8 @@ HitInfo CalculateRayVolumeCollision(float3 position, Ray ray)
     float octreeDim = OCTREE_DIM[octreeLevel];
     
     // Octree id
-    int3 parentId;
-    int3 myId;
+    int3 parentId = int3(-1, -1, -1);
+    int3 myId = int3(-1, -1, -1);
     
     [loop]
     for (int i = 0; i < 300; i++)
@@ -304,15 +408,16 @@ float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
         //output += (1.0 - output.a) * saturate(skyData);
         //return output;
         
-        HitInfo hitInfo = CalculateRayVolumeCollision(hitPoint, ray);
+        //HitInfo hitInfo = CalculateRayVolumeCollision(hitPoint, ray);
+        HitInfo hitInfo = RayMarchOctree(hitPoint, ray);
         if (hitInfo.didHit)
         {
             float3 uv = GetVolumeCoords(hitInfo.hitPointOS);
             half3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
             
-            float3 normalWS = normalize(mul((float3x3) _VolumeLocalToWorldMatrix, gradient));
-            
             //float4 color = GetClassColor(value);
+            
+            float3 normalWS = normalize(mul((float3x3) _VolumeLocalToWorldMatrix, hitInfo.normalOS));
             
             float3 gi = SampleSH(normalWS);
             float4 output = 0;
