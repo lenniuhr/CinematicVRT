@@ -4,9 +4,6 @@ using UnityEngine;
 [RequireComponent(typeof(VolumeBoundingBox))]
 public class OctreeGenerator : MonoBehaviour
 {
-    [Range(0, 7)]
-    public int OctreeDepth = 1;
-
     public ComputeShader computeShader;
 
     private VolumeBoundingBox m_VolumeBoundingBox;
@@ -17,6 +14,7 @@ public class OctreeGenerator : MonoBehaviour
     private bool m_Initialized;
 
     private const int OCTREE_STRIDE = 1 * sizeof(float);
+    private const int OCTREE_DEPTH = 7; // The same as in shader files
 
     private void OnEnable()
     {
@@ -100,7 +98,7 @@ public class OctreeGenerator : MonoBehaviour
     private int GetOctreeBufferSize()
     {
         int size = 0;
-        for(int i = 0; i <= OctreeDepth; i++)
+        for(int i = 0; i <= OCTREE_DEPTH; i++)
         {
             size += Mathf.RoundToInt(Mathf.Pow(2, (i + 1) * 3));
         }
@@ -122,23 +120,23 @@ public class OctreeGenerator : MonoBehaviour
     {
         if (!m_Initialized) return;
 
-        int dim = Mathf.CeilToInt(Mathf.Pow(2, OctreeDepth + 1));
+        int dim = Mathf.CeilToInt(Mathf.Pow(2, OCTREE_DEPTH + 1));
         
         int bufferSize = GetOctreeBufferSize();
         Debug.Log($"Octree Buffer Size: {bufferSize}");
         ShaderHelper.CreateStructuredBuffer<float>(ref m_OctreeBuffer, bufferSize);
 
         // Generate base level
-        Debug.Log($"Generate Octree Base {OctreeDepth} ({dim}, {dim}, {dim})...");
+        Debug.Log($"Generate Octree Base {OCTREE_DEPTH} ({dim}, {dim}, {dim})...");
         computeShader.SetBuffer(m_BaseKernel, "_OctreeBuffer", m_OctreeBuffer);
-        computeShader.SetInt("_GenerateLevel", OctreeDepth);
+        computeShader.SetInt("_GenerateLevel", OCTREE_DEPTH);
 
         ShaderHelper.Dispatch(computeShader, m_BaseKernel, dim, dim, dim);
 
         // Generate other levels
         computeShader.SetBuffer(m_MainKernel, "_OctreeBuffer", m_OctreeBuffer);
 
-        for (int level = OctreeDepth - 1; level >= 0; level--)
+        for (int level = OCTREE_DEPTH - 1; level >= 0; level--)
         {
             GenerateOctreeLevel(level);
         }
@@ -146,6 +144,6 @@ public class OctreeGenerator : MonoBehaviour
         // Set to global
         Debug.Log($"Set global shader variables");
         Shader.SetGlobalBuffer("_OctreeBuffer", m_OctreeBuffer);
-        Shader.SetGlobalInt("_OctreeDepth", OctreeDepth);
+        Shader.SetGlobalInt("_OctreeDepth", OCTREE_DEPTH);
     }
 }

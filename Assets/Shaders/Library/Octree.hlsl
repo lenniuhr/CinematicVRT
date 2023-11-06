@@ -6,7 +6,6 @@
 #include "Assets/Shaders/Library/Volume.hlsl"
 
 StructuredBuffer<float> _OctreeBuffer;
-int _OctreeDepth;
 
 float GetOctreeValue(int level, float3 uv)
 {

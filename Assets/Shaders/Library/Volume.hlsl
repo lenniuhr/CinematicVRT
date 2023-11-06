@@ -2,6 +2,7 @@
 #define VOLUME_INCLUDED
 
 #include "Assets/Shaders/Library/Common.hlsl"
+#include "Assets/Shaders/Library/Tricubic.hlsl"
 
 #define BOX_MIN float3(-0.5, -0.5, -0.5)
 #define BOX_MAX float3(0.5, 0.5, 0.5)
@@ -46,6 +47,7 @@ float SampleDensity(float3 uv)
     {
         return 0;
     }
+    //return tex3DTricubic(_VolumeTex, sampler_VolumeTex, uv, float3(512, 512, 460)).r;
     return SAMPLE_TEXTURE3D_LOD(_VolumeTex, sampler_VolumeTex, uv, 0).r;
 }
 

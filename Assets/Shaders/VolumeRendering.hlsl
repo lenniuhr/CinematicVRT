@@ -57,6 +57,15 @@ float3 ComputeNormal(float3 uv)
 
 StructuredBuffer<float> _ClassifyBuffer;
 
+float4 SampleClassification(float3 uv)
+{
+    if (uv.x < 0.0 || uv.y < 0.0 || uv.z < 0.0 || uv.x > 1.0 || uv.y > 1.0 || uv.z > 1.0)
+    {
+        return 0;
+    }
+    return SAMPLE_TEXTURE3D_LOD(_ClassifyTex, sampler_ClassifyTex, uv, 0);
+}
+
 HitInfo RaymarchCell(int level, int3 currentId, float3 position, float3 dirOS, out int3 newId, out float3 newPos)
 {
     HitInfo hitInfo = (HitInfo)0;
@@ -66,25 +75,30 @@ HitInfo RaymarchCell(int level, int3 currentId, float3 position, float3 dirOS, o
     // TODO: do i need to check at position and newPos ?
     
     float3 t = newPos - position;
-    float3 step = t / 10;
-    for (int i = 0; i <= 10; i++)
+    float3 step = t / 20;
+    for (int i = 0; i <= 20; i++)
     {
         float3 stepPos = position + i * step;
         
         
         float3 uv = GetVolumeCoords(stepPos);
+        
         float density = SampleDensity(uv);
+        float4 classification = SampleClassification(uv);
                     
-        if (density > _Threshold)
+        if (length(classification) > _Threshold)
         {
             // Surface hit
-            float3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
+            //float3 gradient = tex3DTricubic(_GradientTex, sampler_GradientTex, uv, float3(512, 512, 460)).xyz * 2 - 1;
+           float3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
+            
             float3 normalOS = normalize(gradient);
                 
             hitInfo.didHit = true;
             hitInfo.hitPointOS = position;
             hitInfo.normalOS = normalOS;
-            hitInfo.material.color = normalize(normalOS) * 0.5 + 0.5;
+            hitInfo.material.color = GetClassColor(classification);
+            //hitInfo.material.color = normalOS * 0.5 + 0.5;
                 
             return hitInfo;
         }
@@ -274,22 +288,7 @@ float4 RayMarch(float3 position, Ray ray)
     return output;
 }
 
-int IncreaseOctreeLevel(int level, float3 uv)
-{
-    int newLevel = level;
-    while (newLevel < _OctreeDepth)
-    {
-        newLevel++;
-        float value = GetOctreeValue(newLevel, uv);
-        
-        if (value <= _Threshold)
-        {
-            break;
-        }
-    }
-    return newLevel;
-}
-
+/*
 HitInfo CalculateRayVolumeCollision(float3 position, Ray ray)
 {
     HitInfo hitInfo = (HitInfo) 0;
@@ -389,6 +388,7 @@ HitInfo CalculateRayVolumeCollision(float3 position, Ray ray)
     }
     return hitInfo;
 }
+*/
 
 float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
 {

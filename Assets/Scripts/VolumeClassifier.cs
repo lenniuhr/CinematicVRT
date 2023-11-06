@@ -143,6 +143,7 @@ public class VolumeClassifier : MonoBehaviour
         }
         RunSliceClassification();
 
+        densityClassesBuffer.SetData(GetCorrectedDensityClasses());
         Shader.SetGlobalBuffer("_DensityClasses", densityClassesBuffer);
     }
 

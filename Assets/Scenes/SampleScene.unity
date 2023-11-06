@@ -236,7 +236,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 561f9599088e5784b8be3fa846c3b340, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  OctreeDepth: 7
   computeShader: {fileID: 7200000, guid: c9071f97c11b3294e8bdb0acfc110fc2, type: 3}
 --- !u!1 &330585543
 GameObject:
@@ -375,44 +374,6 @@ MonoBehaviour:
   Speed: 0.2
   Angle: 0.2
   StartTime: 0
---- !u!84 &397398074
-RenderTexture:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_ForcedFallbackFormat: 4
-  m_DownscaleFallback: 0
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 5
-  m_Width: 512
-  m_Height: 512
-  m_AntiAliasing: 1
-  m_MipCount: -1
-  m_DepthStencilFormat: 0
-  m_ColorFormat: 4
-  m_MipMap: 0
-  m_GenerateMips: 1
-  m_SRGB: 1
-  m_UseDynamicScale: 0
-  m_BindMS: 0
-  m_EnableCompatibleFormat: 1
-  m_EnableRandomWrite: 1
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 1
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_Dimension: 2
-  m_VolumeDepth: 1
-  m_ShadowSamplingMode: 2
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -943,7 +904,7 @@ MonoBehaviour:
   densityTexture: {fileID: 2800000, guid: 08af1cac69ae11242b4ef0758477a09b, type: 3}
   computeShader: {fileID: 7200000, guid: 92e0358f16f63534a83a39bacf731182, type: 3}
   sliceComputeShader: {fileID: 7200000, guid: d49570e73588d9b458f7eb69873b29c5, type: 3}
-  Slice: 27
+  Slice: 0
   DilateIterations: 1
   DisplayGrayscale: 1
   KernelRadius: 1
@@ -952,7 +913,7 @@ MonoBehaviour:
   densityClasses:
   - min: 130
     max: 210
-    gradientLimit: 0.04
+    gradientLimit: 0.05
     weight: 0.501
     color: {r: 0.8584906, g: 0.29871693, b: 0.2794144, a: 1}
   - min: 140
@@ -965,7 +926,7 @@ MonoBehaviour:
     gradientLimit: 0.3
     weight: 0.7
     color: {r: 0.990566, g: 0.95282674, b: 0.82702917, a: 0}
-  displayImage: {fileID: 397398074}
+  displayImage: {fileID: 2128486727}
 --- !u!4 &1719837475
 Transform:
   m_ObjectHideFlags: 0
@@ -1581,3 +1542,41 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!84 &2128486727
+RenderTexture:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_ForcedFallbackFormat: 4
+  m_DownscaleFallback: 0
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 5
+  m_Width: 512
+  m_Height: 512
+  m_AntiAliasing: 1
+  m_MipCount: -1
+  m_DepthStencilFormat: 0
+  m_ColorFormat: 4
+  m_MipMap: 0
+  m_GenerateMips: 1
+  m_SRGB: 1
+  m_UseDynamicScale: 0
+  m_BindMS: 0
+  m_EnableCompatibleFormat: 1
+  m_EnableRandomWrite: 1
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 1
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_Dimension: 2
+  m_VolumeDepth: 1
+  m_ShadowSamplingMode: 2

@@ -1,6 +1,8 @@
 #ifndef OCTREE_UTILS_INCLUDED
 #define OCTREE_UTILS_INCLUDED
 
+#define OCTREE_DEPTH 7 // The same as in OctreeGenerator.cs
+
 static const int OCTREE_OFFSET[10] =
 {
     0,

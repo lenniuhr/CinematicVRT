@@ -23,7 +23,7 @@ float _Threshold;
 int IncreaseOctreeLevel(int level, float3 uv)
 {
     int newLevel = level;
-    while (newLevel < _OctreeDepth)
+    while (newLevel < OCTREE_DEPTH)
     {
         newLevel++;
         float value = GetOctreeValue(newLevel, uv);
