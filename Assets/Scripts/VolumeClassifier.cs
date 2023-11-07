@@ -56,6 +56,8 @@ public class VolumeClassifier : MonoBehaviour
 
     private DensityClass[] GetCorrectedDensityClasses()
     {
+        if (densityClasses == null) return new DensityClass[0];
+
         DensityClass[] corrected = new DensityClass[densityClasses.Length];
         for(int i = 0; i < densityClasses.Length; i++)
         {
@@ -81,7 +83,7 @@ public class VolumeClassifier : MonoBehaviour
         ShaderHelper.CreateStructuredBuffer<DensityClass>(ref densityClassesBuffer, densityClasses.Length);
         densityClassesBuffer.SetData(GetCorrectedDensityClasses());
 
-        ShaderHelper.CreateRenderTexture3D(ref result3D, densityTex.width, densityTex.height, densityTex.depth, "Result");
+        ShaderHelper.CreateRenderTexture3D(ref result3D, densityTex.width, densityTex.height, densityTex.depth, "Result", RenderTextureFormat.ARGB32);
 
         RenderTexture result2 = ShaderHelper.CreateRenderTexture3D(densityTex.width, densityTex.height, densityTex.depth, "Result2");
 

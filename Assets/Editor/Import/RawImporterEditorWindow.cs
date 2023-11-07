@@ -41,15 +41,23 @@ public class RawImporterEditorWindow : EditorWindow
     private async void ImportDatasetAsync()
     {
         RawImporter importer = new RawImporter(file, dimX, dimY, dimZ, dataFormat);
-        VolumeDataset dataset = await importer.ImportAsync();
+        VolumeDataset dataset = await importer.ImportDataAsync();
         dataset.spacing = spacing;
 
         if (dataset != null)
         {
+
+
             string path = "Assets/Volume Data/" + dataset.datasetName + ".asset";
             AssetDatabase.CreateAsset(dataset, path);
 
             Debug.Log("Created dataset for " + dataset.datasetName);
+
+            AssetDatabase.AddObjectToAsset(dataset.dataTex, path);
+
+            AssetDatabase.SaveAssets();
+
+            Debug.Log("Added data tex to asset");
 
             this.Close();
         }

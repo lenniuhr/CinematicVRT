@@ -1,0 +1,28 @@
+#pragma kernel GenerateGradient
+
+#include "Assets/Shaders/Library/Common.hlsl"
+
+Texture3D<half> _DensityTex;
+RWTexture3D<half4> _GradientTex;
+
+float _MinValue;
+float _MaxValue;
+
+[numthreads(8, 8, 8)]
+void GenerateGradient(uint3 id : SV_DispatchThreadID)
+{
+    float density = _DensityTex[id].r;
+    
+    float densityRange = _MaxValue - _MinValue;
+    
+    float x1 = _DensityTex[int3(id.x + 1, id.y, id.z)];
+    float x2 = _DensityTex[int3(id.x - 1, id.y, id.z)];
+    float y1 = _DensityTex[int3(id.x, id.y + 1, id.z)];
+    float y2 = _DensityTex[int3(id.x, id.y - 1, id.z)];
+    float z1 = _DensityTex[int3(id.x, id.y, id.z + 1)];
+    float z2 = _DensityTex[int3(id.x, id.y, id.z - 1)];
+    
+    
+    float4 gradient = float4((x2 - x1) / densityRange, (y2 - y1) / densityRange, (z2 - z1) / densityRange, 0) * 0.5 + 0.5;
+    _GradientTex[id] = gradient;
+}

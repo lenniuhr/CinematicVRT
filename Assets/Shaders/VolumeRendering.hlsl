@@ -203,7 +203,7 @@ float4 RayMarch(float3 position, Ray ray)
         
         
         
-        float4 value = SAMPLE_TEXTURE3D_LOD(_ClassifyTex, sampler_ClassifyTex, uv, 0);
+        //float4 value = SAMPLE_TEXTURE3D_LOD(_ClassifyTex, sampler_ClassifyTex, uv, 0);
         
         //float4 value = tex3DTricubic(_ClassifyTex, sampler_ClassifyTex, uv, float3(512, 512, 460));
         
@@ -233,16 +233,29 @@ float4 RayMarch(float3 position, Ray ray)
         
         float density = SampleDensity(uv);
         
-        if (density  > _Threshold)
+        /*if (uv.z < 0.5)
         {
+            output.rgb = density;
+            output.a = 1;
+            return output;
+        }*/
+        
+        if (density > 150)
+        {
+            
             half3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
             
-            //if (length(gradient) > 0.2)
-                //continue;
+            
+            output.rgb = normalize(gradient);
+            output.a = 1;
+            break;
+            
+        //if (length(gradient) > 0.2)
+            //continue;
             
             float3 normalWS = normalize(mul((float3x3) _VolumeLocalToWorldMatrix, gradient));
             
-            //float4 color = SAMPLE_TEXTURE2D_LOD(_1DTransferTex, sampler_1DTransferTex, float2(value, 0.5), 0);
+        //float4 color = SAMPLE_TEXTURE2D_LOD(_1DTransferTex, sampler_1DTransferTex, float2(value, 0.5), 0);
             
             float4 color = float4(normalWS, 1);
             
@@ -404,9 +417,9 @@ float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
     float3 hitPoint;
     if (RayBoundingBoxOS(ray, hitPoint))
     {
-        //float4 output = RayMarch(hitPoint, ray);
-        //output += (1.0 - output.a) * saturate(skyData);
-        //return output;
+        float4 output = RayMarch(hitPoint, ray);
+        output += (1.0 - output.a) * saturate(skyData);
+        return output;
         
         //HitInfo hitInfo = CalculateRayVolumeCollision(hitPoint, ray);
         HitInfo hitInfo = RayMarchOctree(hitPoint, ray);

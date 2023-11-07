@@ -27,9 +27,9 @@ public static class ShaderHelper
 
     public static int GetStride<T>() => System.Runtime.InteropServices.Marshal.SizeOf(typeof(T));
 
-    public static void CreateRenderTexture3D(ref RenderTexture texture, int width, int height, int depth, string name)
+    public static void CreateRenderTexture3D(ref RenderTexture texture, int width, int height, int depth, string name, RenderTextureFormat format)
     {
-        if (texture == null || !texture.IsCreated() || texture.width != width || texture.height != height || texture.volumeDepth != depth)
+        if (texture == null || !texture.IsCreated() || texture.width != width || texture.height != height || texture.volumeDepth != depth || texture.format != format)
         {
             Debug.Log ("Create 3D RenderTexture: " + name);
             if (texture != null)
@@ -37,7 +37,7 @@ public static class ShaderHelper
                 texture.Release();
             }
             const int numBitsInDepthBuffer = 0;
-            texture = new RenderTexture(width, height, numBitsInDepthBuffer, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+            texture = new RenderTexture(width, height, numBitsInDepthBuffer, format, RenderTextureReadWrite.Linear);
             texture.volumeDepth = depth;
             texture.enableRandomWrite = true;
             texture.dimension = UnityEngine.Rendering.TextureDimension.Tex3D;

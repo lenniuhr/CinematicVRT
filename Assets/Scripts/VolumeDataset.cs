@@ -1,5 +1,7 @@
 using System;
+using System.Data;
 using System.Threading.Tasks;
+using UnityEditor;
 using UnityEngine;
 
 public class VolumeDataset : ScriptableObject
@@ -11,12 +13,16 @@ public class VolumeDataset : ScriptableObject
     public int depth;
     public float minValue;
     public float maxValue;
+    [SerializeField] public Texture3D dataTex;
+
+    [Header("Editable")]
     public Vector3 spacing;
     public float clampRangeMin;
     public float clampRangeMax;
 
     [HideInInspector][SerializeField]
-    private float[] data;
+    public float[] data;
+
 
     private Texture3D dataTexture;
     private Texture3D gradientTexture;
@@ -34,7 +40,9 @@ public class VolumeDataset : ScriptableObject
 
     public async Task<Texture3D> GetTexture()
     {
-        if(dataTexture != null && false)
+        Debug.Log("Data tex has width " + dataTex.width);
+
+        if (dataTexture != null && false)
         {
             return dataTexture;
         }

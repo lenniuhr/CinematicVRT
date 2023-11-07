@@ -27,11 +27,11 @@ MonoBehaviour:
   m_Name: Render Mode
   m_EditorClassIdentifier: 
   m_Active: 1
-  renderMode: 2
+  renderMode: 0
   renderPassEvent: 300
   settings:
     StepSize: 0.001
-    Threshold: 0.05
+    Threshold: 0.063
     Color: {r: 0.9811321, g: 0.89690286, b: 0.6803133, a: 1}
   octreeSettings:
     OctreeLevel: 7
