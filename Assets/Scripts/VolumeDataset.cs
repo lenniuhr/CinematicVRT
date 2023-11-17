@@ -28,12 +28,12 @@ public class VolumeDataset : ScriptableObject
     private Texture3D gradientTexture;
     private Texture2D histogram;
 
-    public float GetMinValue()
+    public float GetRangeMin()
     {
         return Mathf.Max(minValue, clampRangeMin);
     }
 
-    public float GetMaxValue()
+    public float GetRangeMax()
     {
         return Mathf.Min(maxValue, clampRangeMax);
     }

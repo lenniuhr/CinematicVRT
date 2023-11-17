@@ -4,16 +4,15 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-using FellowOakDicom;
-using FellowOakDicom.Imaging;
-using FellowOakDicom.Imaging.Reconstruction;
-using FellowOakDicom.Imaging.Render;
-using FellowOakDicom.Imaging.LUT;
 
 [ExecuteInEditMode]
 public class TextureGenerator : MonoBehaviour
 {
     public Texture2D texture;
+
+    public Cubemap cubemap;
+
+    public ComputeShader computeShader;
 
     public Texture3D texture3D;
 
@@ -21,15 +20,18 @@ public class TextureGenerator : MonoBehaviour
 
     public int Slice;
 
-    public FilterMode filterMode;
-    [Range(0, 10)]
+
+    public Texture displayImage;
+
+    public BlurFilterMode filterMode;
+    [Range(0, 100)]
     public int kernelRadius;
-    [Range(0.001f, 10)]
+    [Range(0.001f, 100)]
     public float sigma;
     [Range(0.001f, 10)]
     public float sigmaR;
 
-    public enum FilterMode
+    public enum BlurFilterMode
     {
         Bilateral = 0,
         Gaussian = 1
@@ -67,60 +69,192 @@ public class TextureGenerator : MonoBehaviour
         material.SetFloat("_SigmaR", sigmaR);
     }
 
-    
+    public void BlurCubemap()
+    {
+        ;
+
+        Debug.Log($"Cubemap has width {cubemap.width}");
+
+        Texture2D result = new Texture2D(cubemap.width, cubemap.width, TextureFormat.RGBAFloat, false);
+
+        result.SetPixels(cubemap.GetPixels(CubemapFace.PositiveZ, 0), 0);
+        result.Apply();
+
+        displayImage = result;
+
+       
+        // Copy cubemap faces to Texture2DArray
+
+        Texture2DArray cubemapFaces = new Texture2DArray(cubemap.width, cubemap.width, 6, TextureFormat.RGBAFloat, false);
+        cubemapFaces.SetPixels(cubemap.GetPixels(CubemapFace.PositiveX, 0), 0);
+        cubemapFaces.SetPixels(cubemap.GetPixels(CubemapFace.NegativeX, 0), 1);
+        cubemapFaces.SetPixels(cubemap.GetPixels(CubemapFace.PositiveY, 0), 2);
+        cubemapFaces.SetPixels(cubemap.GetPixels(CubemapFace.NegativeY, 0), 3);
+        cubemapFaces.SetPixels(cubemap.GetPixels(CubemapFace.PositiveZ, 0), 4);
+        cubemapFaces.SetPixels(cubemap.GetPixels(CubemapFace.NegativeZ, 0), 5);
+        cubemapFaces.Apply();
+
+
+        RenderTexture resultArray = new RenderTexture(cubemap.width, cubemap.width, 0, RenderTextureFormat.ARGBFloat);
+        resultArray.volumeDepth = 6;
+        resultArray.enableRandomWrite = true;
+        resultArray.dimension = TextureDimension.Tex2DArray;
+        resultArray.useMipMap = false;
+        resultArray.autoGenerateMips = false;
+        resultArray.wrapMode = TextureWrapMode.Clamp;
+        resultArray.filterMode = FilterMode.Bilinear;
+        resultArray.Create();
+
+        // Copy Texture2DArray to RenderTexture
+
+        //Graphics.CopyTexture(cubemapFaces, 0, resultArray, 0);
+
+        // Run compute shader
+        int classifyKernel = computeShader.FindKernel("GenerateCubemap");
+
+        computeShader.SetTexture(classifyKernel, "_Cubemap", cubemap);
+
+        computeShader.SetTexture(classifyKernel, "_Result", resultArray);
+        computeShader.SetTexture(classifyKernel, "_CubemapFaces", cubemapFaces);
+        computeShader.SetInt("_KernelRadius", kernelRadius);
+        computeShader.SetFloat("_Sigma", sigma);
+
+        computeShader.GetKernelThreadGroupSizes(classifyKernel, out uint threadGroupSizeX, out uint threadGroupSizeY, out uint threadGroupSizeZ);
+        int threadGroupsX = Mathf.CeilToInt(cubemap.width / (float)threadGroupSizeX);
+        int threadGroupsY = Mathf.CeilToInt(cubemap.height / (float)threadGroupSizeY);
+        int threadGroupsZ = 1;
+
+        Debug.Log($"Dispatch Size: ({threadGroupsX}, {threadGroupsY}, {threadGroupsZ})");
+
+        for(int i = 0; i < 6; i++)
+        {
+            computeShader.SetInt("_Face", i);
+            computeShader.Dispatch(classifyKernel, threadGroupsX, threadGroupsY, threadGroupsZ);
+        }
+
+
+
+        // Copy  RenderTexture to Texture2DArray
+
+        // Create a request and pass in a method to capture the callback
+        AsyncGPUReadback.Request(resultArray, 0, 0, resultArray.width, 0, resultArray.height, 0, resultArray.volumeDepth, new Action<AsyncGPUReadbackRequest>
+        (
+        (AsyncGPUReadbackRequest request) =>
+        {
+            if (!request.hasError)
+            {
+
+                Texture2DArray resultTextures = new Texture2DArray(cubemap.width, cubemap.width, 6, TextureFormat.RGBAFloat, false);
+
+                // Copy the data
+                for (var i = 0; i < request.layerCount; i++)
+                    {
+                    resultTextures.SetPixels(request.GetData<Color>(i).ToArray(), i);
+                    }
+
+                resultTextures.Apply();
+
+                // You'll want to release the no longer required GPU texture somewhere here
+                //resultArray.Release();
+
+
+
+                // Copy Texture2DArray to Cubemap
+
+                Cubemap resultCubemap = new Cubemap(cubemap.width, TextureFormat.RGBAFloat, false);
+                resultCubemap.SetPixels(resultTextures.GetPixels(0), CubemapFace.PositiveX);
+                resultCubemap.SetPixels(resultTextures.GetPixels(1), CubemapFace.NegativeX);
+                resultCubemap.SetPixels(resultTextures.GetPixels(2), CubemapFace.PositiveY);
+                resultCubemap.SetPixels(resultTextures.GetPixels(3), CubemapFace.NegativeY);
+                resultCubemap.SetPixels(resultTextures.GetPixels(4), CubemapFace.PositiveZ);
+                resultCubemap.SetPixels(resultTextures.GetPixels(5), CubemapFace.NegativeZ);
+
+                //resultCubemap.SetPixels(cubemap.GetPixels(CubemapFace.PositiveX, 0), CubemapFace.PositiveX);
+
+                resultCubemap.Apply();
+
+
+                Debug.Log($"Finished copy cubemap");
+
+                //Shader.SetGlobalTexture("_IrradianceMap", resultCubemap);
+                //Shader.SetGlobalTexture("_IrradianceMap", cubemap);
+
+
+                string path = "Assets/Textures/HDRI Environments/ReflectionMap.asset";
+                AssetDatabase.DeleteAsset(path);
+                AssetDatabase.CreateAsset(resultCubemap, path);
+
+                Debug.Log("Saved 3D asset");
+            }
+        }
+        ));
+    }
+
+    private Vector3 CalculateAverage(Texture2D texture)
+    {
+        Vector3 average = Vector3.zero;
+        float max = 0;
+        for (int x = 0; x < texture.width; x++)
+        {
+            for (int y = 0; y < texture.height; y++)
+            {
+                Color color = texture.GetPixel(x, y);
+                average.x += color.r;
+                average.y += color.g;
+                average.z += color.b;
+
+                if (x == 0 && y == 0)
+                    Debug.Log(color);
+
+                max = Mathf.Max(max, color.r);
+                max = Mathf.Max(max, color.g);
+                max = Mathf.Max(max, color.b);
+            }
+        }
+        Debug.Log("Max: " + max);
+
+        return average / (texture.width * texture.height);
+    }
 
     public void BlurTexture2D()
     {
-        RenderTexture renderTarget = new RenderTexture(texture.width, texture.width, 0, RenderTextureFormat.ARGB32);
-        Graphics.SetRenderTarget(renderTarget);
+        Debug.Log($"Environment texture has dimension ({texture.width}, {texture.height})");
+
+        RenderTexture rt = new RenderTexture(texture.width, texture.height, 0, RenderTextureFormat.ARGBFloat);
+        rt.Create();
+        Graphics.SetRenderTarget(rt);
 
         switch(filterMode)
         {
-            case FilterMode.Bilateral:
-                Graphics.Blit(texture, renderTarget, material, (int)Pass.BilateralBlur);
+            case BlurFilterMode.Bilateral:
+                Graphics.Blit(texture, rt, material, (int)Pass.BilateralBlur);
                 break;
-            case FilterMode.Gaussian:
-                Graphics.Blit(texture, renderTarget, material, (int)Pass.GaussianBlur);
+            case BlurFilterMode.Gaussian:
+                Graphics.Blit(texture, rt, material, (int)Pass.GaussianBlur);
                 break;
         }
 
-        SaveTexture2D(renderTarget, texture.format, "blur");
-    }
-
-    private void ReadWithImageData()
-    {
-        //DicomFile dicomFile = DicomFile.Open("C:/Users/lenna/Desktop/DicomConverter/input/2FA0BFF0");
-        DicomFile dicomFile = DicomFile.Open("C:/Users/lenna/Desktop/DicomConverter/DICOM/60E51890/834BCAEB/2F95D6C8");
-        //DicomFile dicomFile = DicomFile.Open("C:/Users/lenna/Desktop/DicomConverter/input/I103");
-
-        ImageData imageData = new ImageData(dicomFile.Dataset);
-        IPixelData iPixelData = imageData.Pixels;
-
-        Debug.Log("PixelData type: " + iPixelData.GetType());
-
-        Debug.Log("Size: (" + iPixelData.Width + ", " + iPixelData.Height + ")");
-
-        GrayscaleRenderOptions options = GrayscaleRenderOptions.FromDataset(dicomFile.Dataset);
-        ModalityRescaleLUT modalityLUT = new ModalityRescaleLUT(options);
-
-        float min = 1000;
-        float max = -1000;
-        for (int i = 0; i < iPixelData.Width; i++)
-        {
-            for (int j = 0; j < iPixelData.Height; j++)
-            {
-                float value = Convert.ToSingle(modalityLUT[iPixelData.GetPixel(i, j)]);
-
-                min = Mathf.Min(min, value);
-                max = Mathf.Max(max, value);
-            }
-        }
+        Vector3 average = CalculateAverage(texture);
+        Debug.Log($"Average color: {average.x}, {average.y}, {average.z}");
 
 
-        //double min = iPixelData.GetMinMax().Minimum;
-        //double max = iPixelData.GetMinMax().Maximum;
+        Texture2D result = new Texture2D(rt.width, rt.height, TextureFormat.RGBAFloat, false);
+        RenderTexture.active = rt;
+        result.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+        result.Apply();
 
-        Debug.Log("Value range: [" + min + ", " + max + "]");
+        Debug.Log($"Result texture has dimension ({result.width}, {result.height})");
+
+        Vector3 averageRT = CalculateAverage(result);
+        Debug.Log($"Average RT color: {averageRT.x}, {averageRT.y}, {averageRT.z}");
+
+
+        //Cubemap cubemap = new Cubemap(256, TextureFormat.RGBAFloat, false);
+
+        //Shader.SetGlobalTexture("_EnvironmentMap", rt);
+        //displayImage = rt;
+
+        //SaveTexture2D(renderTarget, texture.format, "blur");
     }
 
     public void SaveCTSlice(string filename)
@@ -194,8 +328,6 @@ public class TextureGenerator : MonoBehaviour
         result.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
         result.Apply();
 
-        ReadWithImageData();
-
         for (int x = 0; x < rt.width; x++)
         {
             for (int y = 0; y < rt.height; y++)
@@ -242,10 +374,10 @@ public class TextureGenerator : MonoBehaviour
         {
             switch (filterMode)
             {
-                case FilterMode.Bilateral:
+                case BlurFilterMode.Bilateral:
                     Graphics.Blit(texture, renderTarget, material, (int)Pass.BilateralBlur3D);
                     break;
-                case FilterMode.Gaussian:
+                case BlurFilterMode.Gaussian:
                     Graphics.Blit(texture, renderTarget, material, (int)Pass.GaussianBlur3D);
                     break;
             }

@@ -58,6 +58,11 @@ public class OctreeGenerator : MonoBehaviour
         computeShader.SetTexture(m_BaseKernel, "_VolumeTex", dataTexture);
         computeShader.SetVector("_VolumeTexelSize", new Vector3(1.0f / dataTexture.width, 1.0f / dataTexture.height, 1.0f / dataTexture.depth));
 
+        computeShader.SetTexture(m_BaseKernel, "_DensityTex", dataTexture);
+        computeShader.SetVector("_Dimension", new Vector3(dataTexture.width, dataTexture.height, dataTexture.depth));
+
+        computeShader.SetTextureFromGlobal(m_BaseKernel, "_ClassifyTex", "_ClassifyTex");
+
         m_Initialized = true;
 
         //Debug.Log($"Volume Texture Texelsize: ({1 / dataTexture.width}, {1 / dataTexture.height}, {1 / dataTexture.depth})...");

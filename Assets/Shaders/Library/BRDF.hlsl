@@ -21,7 +21,7 @@ struct MyBRDFData
     half roughness2MinusOne; // roughness^2 - 1.0
 };
 
-void InitializeBRDFData(half3 albedo, half smoothness, half metallic, out MyBRDFData outBRDFData)
+void InitializeBRDFData(half3 albedo, half roughness, half metallic, out MyBRDFData outBRDFData)
 {
     half oneMinusDielectricSpec = kDielectricSpec.a;
     oneMinusDielectricSpec = oneMinusDielectricSpec - metallic * oneMinusDielectricSpec;
@@ -37,20 +37,20 @@ void InitializeBRDFData(half3 albedo, half smoothness, half metallic, out MyBRDF
     outBRDFData.specular = brdfSpecular;
     outBRDFData.reflectivity = reflectivity;
 
-    outBRDFData.perceptualRoughness = (1.0 - smoothness);
+    outBRDFData.perceptualRoughness = roughness;
     outBRDFData.roughness = max(outBRDFData.perceptualRoughness * outBRDFData.perceptualRoughness, HALF_MIN_SQRT);
     outBRDFData.roughness2 = max(outBRDFData.roughness * outBRDFData.roughness, HALF_MIN);
-    outBRDFData.grazingTerm = saturate(smoothness + reflectivity);
+    outBRDFData.grazingTerm = saturate((1.0 - roughness) + reflectivity);
     outBRDFData.normalizationTerm = outBRDFData.roughness * half(4.0) + half(2.0);
     outBRDFData.roughness2MinusOne = outBRDFData.roughness2 - half(1.0);
 
 }
 
-float3 PBRLighting(half3 albedo, half smoothness, half metallic, float3 viewDirectionWS, float3 normalWS, half3 bakedGI)
+float3 PBRLighting(half3 albedo, half roughness, half metallic, float3 viewDirectionWS, float3 normalWS, half3 bakedGI)
 {
     // Initalize brdf data
     MyBRDFData brdfData;
-    InitializeBRDFData(albedo, smoothness, metallic, brdfData);
+    InitializeBRDFData(albedo, roughness, metallic, brdfData);
     // Global Illumination
 
     half3 reflectVector = reflect(-viewDirectionWS, normalWS);

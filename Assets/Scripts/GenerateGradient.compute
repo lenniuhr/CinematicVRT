@@ -5,24 +5,62 @@
 Texture3D<half> _DensityTex;
 RWTexture3D<half4> _GradientTex;
 
-float _MinValue;
-float _MaxValue;
+float4 _Dimension;
+
+float _RangeMin;
+float _RangeMax;
 
 [numthreads(8, 8, 8)]
-void GenerateGradient(uint3 id : SV_DispatchThreadID)
+void GenerateGradient(int3 id : SV_DispatchThreadID)
 {
-    float density = _DensityTex[id].r;
+    float density = _DensityTex[id];
     
-    float densityRange = _MaxValue - _MinValue;
+    float densityRange = _RangeMax - _RangeMin;
     
-    float x1 = _DensityTex[int3(id.x + 1, id.y, id.z)];
-    float x2 = _DensityTex[int3(id.x - 1, id.y, id.z)];
-    float y1 = _DensityTex[int3(id.x, id.y + 1, id.z)];
-    float y2 = _DensityTex[int3(id.x, id.y - 1, id.z)];
-    float z1 = _DensityTex[int3(id.x, id.y, id.z + 1)];
-    float z2 = _DensityTex[int3(id.x, id.y, id.z - 1)];
+    float x1 = _DensityTex[int3(min(id.x + 1, _Dimension.x - 1), id.y, id.z)];
+    float x2 = _DensityTex[int3(max(id.x - 1, 0), id.y, id.z)];
+    float y1 = _DensityTex[int3(id.x, min(id.y + 1, _Dimension.y - 1), id.z)];
+    float y2 = _DensityTex[int3(id.x, max(id.y - 1, 0), id.z)];
+    float z1 = _DensityTex[int3(id.x, id.y, min(id.z + 1, _Dimension.z - 1))];
+    float z2 = _DensityTex[int3(id.x, id.y, max(id.z - 1, 0))];
     
     
-    float4 gradient = float4((x2 - x1) / densityRange, (y2 - y1) / densityRange, (z2 - z1) / densityRange, 0) * 0.5 + 0.5;
+    if (id.x == _Dimension.x - 1)
+    {
+        x1 = _RangeMin;
+    }
+    else if (id.x == 0)
+    {
+        x2 = _RangeMin;
+    }
+    if (id.y == _Dimension.y - 1)
+    {
+        y1 = _RangeMin;
+    }
+    else if (id.y == 0)
+    {
+        y2 = _RangeMin;
+    }
+    if (id.z == _Dimension.z - 1)
+    {
+        z1 = _RangeMin;
+    }
+    else if (id.z == 0)
+    {
+        z2 = _RangeMin;
+    }
+    
+    
+    //if (id.y - 1 == -1)
+        //y2 = _DensityTex[int3(id.x, 0, id.z)];
+    
+    
+        float4 gradient = float4((x2 - x1) / densityRange, (y2 - y1) / densityRange, (z2 - z1) / densityRange, 0) * 0.5 + 0.5;
     _GradientTex[id] = gradient;
+    
+    //_GradientTex[id] = float4(0, 0, 1, 1);
+    
+    //_GradientTex[id] = ((y2 - y1) / densityRange) * 0.5 + 0.5;
+    //_GradientTex[id] = 0;
+    
 }

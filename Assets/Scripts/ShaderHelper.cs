@@ -49,6 +49,7 @@ public static class ShaderHelper
         texture.filterMode = FilterMode.Bilinear;
         texture.name = name;
     }
+
     public static RenderTexture CreateRenderTexture3D(int width, int height, int depth, string name)
     {
         Debug.Log("Create 3D RenderTexture: " + name);

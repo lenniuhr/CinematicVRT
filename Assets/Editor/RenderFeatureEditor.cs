@@ -29,6 +29,7 @@ public class RenderFeatureEditor : Editor
                 break;
             case RenderModeRendererFeature.RenderMode.RAYTRACE:
                 rf.cinematicSettings.Threshold = EditorGUILayout.Slider("Threshold", rf.cinematicSettings.Threshold, 0, 1);
+                rf.cinematicSettings.Accumulate = EditorGUILayout.Toggle("Accumulate", rf.cinematicSettings.Accumulate);
                 rf.cinematicSettings.Color = EditorGUILayout.ColorField("Color", rf.cinematicSettings.Color);
                 break;
         }

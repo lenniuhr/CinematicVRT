@@ -4,7 +4,15 @@ using UnityEngine.Rendering;
 [ExecuteAlways]
 public class EnvironmentManager : MonoBehaviour
 {
-    public Cubemap Skybox;
+
+    public Texture EnvironmentMap4K;
+    public Texture EnvironmentMap1K;
+
+    public Cubemap EnvironmentMap;
+    public Cubemap IrradianceMap;
+    public Cubemap ReflectionMap;
+
+    public ComputeShader computeShader;
 
     private void OnEnable()
     {
@@ -18,8 +26,13 @@ public class EnvironmentManager : MonoBehaviour
 
     private void UpdateShaderParams()
     {
-        if (Skybox == null) return;
+        Shader.SetGlobalTexture("_EnvironmentMap", EnvironmentMap);
+        Shader.SetGlobalTexture("_IrradianceMap", IrradianceMap);
+        Shader.SetGlobalTexture("_ReflectionMap", ReflectionMap);
+    }
 
-        Shader.SetGlobalTexture("_Skybox", Skybox);
+    public void GenerateIrradianceTexture()
+    {
+
     }
 }

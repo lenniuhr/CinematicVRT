@@ -2,6 +2,7 @@
 #define CLASSIFICATION_INCLUDED
 
 #include "Assets/Shaders/Library/Common.hlsl"
+#include "Assets/Shaders/Library/RayTracingMaterial.hlsl"
 
 struct DensityClass
 {
@@ -10,9 +11,29 @@ struct DensityClass
     float gradientLimit;
     float weight;
     float4 color;
+    float metallicness;
+    float roughness;
+    float reflectance;
 };
 
 StructuredBuffer<DensityClass> _DensityClasses;
+
+RayTracingMaterial GetMaterial(float4 uv)
+{
+    RayTracingMaterial material = (RayTracingMaterial)0;
+    
+    if (length(uv) == 0)
+        return material;
+    
+    float4 normalizedUV = uv / (uv.x + uv.y + uv.z + uv.w);
+    
+    material.color = normalizedUV.x * _DensityClasses[0].color + normalizedUV.y * _DensityClasses[1].color + normalizedUV.z * _DensityClasses[2].color;
+    material.metallicness = normalizedUV.x * _DensityClasses[0].metallicness + normalizedUV.y * _DensityClasses[1].metallicness + normalizedUV.z * _DensityClasses[2].metallicness;
+    material.roughness = normalizedUV.x * _DensityClasses[0].roughness + normalizedUV.y * _DensityClasses[1].roughness + normalizedUV.z * _DensityClasses[2].roughness;
+    material.reflectance = normalizedUV.x * _DensityClasses[0].reflectance + normalizedUV.y * _DensityClasses[1].reflectance + normalizedUV.z * _DensityClasses[2].reflectance;
+    
+    return material;
+}
 
 float4 GetClassColor(float4 uv)
 {
@@ -29,6 +50,8 @@ float4 GetClassColor(float4 uv)
 
 bool InDensityRange(float density, int index)
 {
+    return (density > _DensityClasses[index].min && density < _DensityClasses[index].max);
+    
     float min = (_DensityClasses[index].min + 1000.0) / 3000.0;
     float max = (_DensityClasses[index].max + 1000.0) / 3000.0;
     
@@ -42,16 +65,22 @@ bool InDensityRangeMinMax(float min, float max, float density)
 
 float GetCenter(int index)
 {
+    return (_DensityClasses[index].min + _DensityClasses[index].max) * 0.5;
+    
     return ((_DensityClasses[index].min + _DensityClasses[index].max) * 0.5 + 1000.0) / 3000.0;
 }
 
 half GetMin(int index)
 {
+    return _DensityClasses[index].min;
+    
     return (_DensityClasses[index].min + 1000.0) / 3000.0;
 }
 
 half GetMax(int index)
 {
+    return _DensityClasses[index].max;
+    
     return (_DensityClasses[index].max + 1000.0) / 3000.0;
 }
 
@@ -77,7 +106,6 @@ float GetClassDensity(float density, int id)
         else
         {
             distance01 = (distance01 - width) / (1 - width);
-            //value = cos(distance01 * 3.1415) * 0.5 + 0.5;
             value = 1 - distance01;
         }
         return value;

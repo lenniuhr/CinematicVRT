@@ -7,12 +7,11 @@ public class VolumeClassifier : MonoBehaviour
     public Texture2D densityTexture;
     public ComputeShader computeShader;
     public ComputeShader sliceComputeShader;
-    [Range(0, 460)]
-    public int Slice;
-    [Range(0, 50)]
-    public int DilateIterations = 3;
-    public bool DisplayGrayscale = false;
 
+    [Range(0, 1)] public float FadeOut;
+    [Range(0, 1)] public float Slice;
+    public bool DisplayGrayscale = false;
+    public bool BlurImage = false;
     [Range(1, 8)] public int KernelRadius = 2;
     [Range(0.1f, 10)] public float Sigma = 1;
 
@@ -24,7 +23,11 @@ public class VolumeClassifier : MonoBehaviour
     private ComputeBuffer densityClassesBuffer;
 
     public RenderTexture displayImage;
-    private RenderTexture result3D;
+
+    private RenderTexture result;
+    private RenderTexture temp;
+
+    public RenderTexture classifyTex;
 
     [Serializable]
     public struct DensityClass
@@ -36,21 +39,32 @@ public class VolumeClassifier : MonoBehaviour
         [Range(0, 1f)]
         public float weight;
         public Color color;
+        [Range(0, 1f)]
+        public float metallicness;
+        [Range(0, 1f)]
+        public float roughness;
+        [Range(0, 1f)]
+        public float reflectance;
 
-        public DensityClass(float min, float max, float gradientLimit, float weight, Color color)
+        public DensityClass(float min, float max, float gradientLimit, float weight, Color color, float metallicness, float roughness, float reflectance)
         {
             this.min = min;
             this.max = max;
             this.gradientLimit = gradientLimit;
             this.weight = weight;
             this.color = color;
+            this.metallicness = metallicness;
+            this.roughness = roughness;
+            this.reflectance = reflectance;
         }
     };
 
     private void OnDisable()
     {
         densityClassesBuffer?.Release();
-        result3D?.Release();
+        result?.Release();
+        temp?.Release();
+
         displayImage?.Release();
     }
 
@@ -69,28 +83,37 @@ public class VolumeClassifier : MonoBehaviour
 
     public void RunClassification3D()
     {
+
+        Texture3D densityTex = FindObjectOfType<VolumeBoundingBox>().GetDataTexture();
+        RenderTexture gradientTex = FindObjectOfType<VolumeBoundingBox>().GetGradientTexture();
+
+        if (densityTex == null || gradientTex == null) return;
+
         // Initalize
         int classifyKernel = computeShader.FindKernel("Classify");
 
         computeShader.SetInt("_KernelRadius", KernelRadius);
         computeShader.SetFloat("_Sigma", Sigma);
 
-        Texture3D densityTex = FindObjectOfType<VolumeBoundingBox>().GetDataTexture();
-        Texture3D gradientTex = FindObjectOfType<VolumeBoundingBox>().GetGradientexture();
+        float rangeMin = FindObjectOfType<VolumeBoundingBox>().dataset.GetRangeMin();
+        float rangeMax = FindObjectOfType<VolumeBoundingBox>().dataset.GetRangeMax();
+        Debug.Log($"Value Range: [{rangeMin}, {rangeMax}]");
 
-        if (densityTex == null || gradientTex == null) return;
+        computeShader.SetFloat("_RangeMin", rangeMin);
+        computeShader.SetFloat("_RangeMax", rangeMax);
 
-        ShaderHelper.CreateStructuredBuffer<DensityClass>(ref densityClassesBuffer, densityClasses.Length);
-        densityClassesBuffer.SetData(GetCorrectedDensityClasses());
+        computeShader.SetFloat("_FadeOut", FadeOut);
+        computeShader.SetVector("_Dimension", new Vector4(densityTex.width, densityTex.height, densityTex.depth));
 
-        ShaderHelper.CreateRenderTexture3D(ref result3D, densityTex.width, densityTex.height, densityTex.depth, "Result", RenderTextureFormat.ARGB32);
+        UpdateDensityClasses();
 
-        RenderTexture result2 = ShaderHelper.CreateRenderTexture3D(densityTex.width, densityTex.height, densityTex.depth, "Result2");
+        ShaderHelper.CreateRenderTexture3D(ref result, densityTex.width, densityTex.height, densityTex.depth, "Result", RenderTextureFormat.ARGB32);
+        ShaderHelper.CreateRenderTexture3D(ref temp, densityTex.width, densityTex.height, densityTex.depth, "Temp", RenderTextureFormat.ARGB32);
 
         // Run compute shader
         computeShader.SetTexture(classifyKernel, "_DensityTex3D", densityTex);
         computeShader.SetTexture(classifyKernel, "_GradientTex3D", gradientTex);
-        computeShader.SetTexture(classifyKernel, "_Result", result3D);
+        computeShader.SetTexture(classifyKernel, "_Result", result);
         computeShader.SetBuffer(classifyKernel, "_DensityClasses", densityClassesBuffer);
 
         Debug.Log($"Texture size: ({densityTex.width}, {densityTex.height})...");
@@ -103,31 +126,29 @@ public class VolumeClassifier : MonoBehaviour
         Debug.Log($"Dispatch Size: ({threadGroupsX}, {threadGroupsY}, {threadGroupsZ})");
         computeShader.Dispatch(classifyKernel, threadGroupsX, threadGroupsY, threadGroupsZ);
 
-        int dilateKernel = computeShader.FindKernel("Dilate");
-        computeShader.SetTexture(dilateKernel, "_DensityTex3D", densityTex);
-        computeShader.SetTexture(dilateKernel, "_GradientTex3D", gradientTex);
-        computeShader.SetBuffer(dilateKernel, "_DensityClasses", densityClassesBuffer);
-
-        // Run dilate
-        for (int i = 0; i < DilateIterations * 2; i++)
+        if (BlurImage)
         {
-            if (i % 2 == 0)
-            {
-                computeShader.SetTexture(dilateKernel, "_Result", result2);
-                computeShader.SetTexture(dilateKernel, "_PrevResult", result3D);
-            }
-            else
-            {
-                computeShader.SetTexture(dilateKernel, "_Result", result3D);
-                computeShader.SetTexture(dilateKernel, "_PrevResult", result2);
-            }
-            computeShader.Dispatch(dilateKernel, threadGroupsX, threadGroupsY, threadGroupsZ);
+            // Run blur
+            int blurKernel = computeShader.FindKernel("Blur");
+
+            computeShader.SetTexture(blurKernel, "_DensityTex3D", densityTex);
+            computeShader.SetTexture(blurKernel, "_GradientTex3D", gradientTex);
+            computeShader.SetBuffer(blurKernel, "_DensityClasses", densityClassesBuffer);
+
+
+            computeShader.SetTexture(blurKernel, "_Result", temp);
+            computeShader.SetTexture(blurKernel, "_PrevResult", result);
+
+            computeShader.Dispatch(blurKernel, threadGroupsX, threadGroupsY, threadGroupsZ);
+
+            classifyTex = temp;
+        }
+        else
+        {
+            classifyTex = result;
         }
 
-        // Release textures and buffers
-        result2.Release();
-
-        Shader.SetGlobalTexture("_ClassifyTex", result3D);
+        Shader.SetGlobalTexture("_ClassifyTex", classifyTex);
 
         Debug.Log("Finished classification");
     }
@@ -145,36 +166,50 @@ public class VolumeClassifier : MonoBehaviour
         }
         RunSliceClassification();
 
+        UpdateDensityClasses();
+    }
+
+    private void UpdateDensityClasses()
+    {
+        ShaderHelper.CreateStructuredBuffer<DensityClass>(ref densityClassesBuffer, densityClasses.Length);
         densityClassesBuffer.SetData(GetCorrectedDensityClasses());
+
         Shader.SetGlobalBuffer("_DensityClasses", densityClassesBuffer);
     }
 
     public void RunSliceClassification()
     {
         Texture3D densityTex = FindObjectOfType<VolumeBoundingBox>().GetDataTexture();
-        Texture3D gradientTex = FindObjectOfType<VolumeBoundingBox>().GetGradientexture();
+        RenderTexture gradientTex = FindObjectOfType<VolumeBoundingBox>().GetGradientTexture();
 
         if (densityTex == null || gradientTex == null) return;
 
-        float minHU = FindObjectOfType<VolumeBoundingBox>().dataset.GetMinValue();
-        float maxHU = FindObjectOfType<VolumeBoundingBox>().dataset.GetMaxValue();
-        Debug.Log($"Houndsfield Units Range: [{minHU}, {maxHU}]");
+        float rangeMin = FindObjectOfType<VolumeBoundingBox>().dataset.GetRangeMin();
+        float rangeMax = FindObjectOfType<VolumeBoundingBox>().dataset.GetRangeMax();
+        Debug.Log($"Value Range: [{rangeMin}, {rangeMax}]");
 
-        ShaderHelper.CreateStructuredBuffer<DensityClass>(ref densityClassesBuffer, densityClasses.Length); 
-        densityClassesBuffer.SetData(densityClasses);
+        UpdateDensityClasses();
 
+        // Set variables
         sliceComputeShader.SetInt("_KernelRadius", KernelRadius);
         sliceComputeShader.SetFloat("_Sigma", Sigma);
+
+        sliceComputeShader.SetFloat("_RangeMin", rangeMin);
+        sliceComputeShader.SetFloat("_RangeMax", rangeMax);
+
+        int slice = Mathf.RoundToInt(Slice * (densityTex.depth - 1));
+        sliceComputeShader.SetInt("_Slice", slice);
+        sliceComputeShader.SetFloat("_FadeOut", FadeOut);
+        sliceComputeShader.SetVector("_Dimension", new Vector4(densityTex.width, densityTex.height, densityTex.depth));
 
         // Initalize
         int classifyKernel = sliceComputeShader.FindKernel("Classify");
 
         // Create RT
-        RenderTexture result = new RenderTexture(densityTex.width, densityTex.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+        RenderTexture result = new RenderTexture(densityTex.width, densityTex.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
         result.enableRandomWrite = true;
 
         // Run compute shader
-        sliceComputeShader.SetInt("_Slice", Slice);
         sliceComputeShader.SetTexture(classifyKernel, "_Result", result);
         sliceComputeShader.SetTexture(classifyKernel, "_DensityTex", densityTex);
         sliceComputeShader.SetTexture(classifyKernel, "_GradientTex", gradientTex);
@@ -190,33 +225,25 @@ public class VolumeClassifier : MonoBehaviour
         Debug.Log($"Dispatch Size: ({threadGroupsX}, {threadGroupsY}, {threadGroupsZ})");
         sliceComputeShader.Dispatch(classifyKernel, threadGroupsX, threadGroupsY, threadGroupsZ);
 
-        RenderTexture prev = new RenderTexture(densityTex.width, densityTex.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
-        prev.enableRandomWrite = true;
-
-        int dilateKernel = sliceComputeShader.FindKernel("Dilate");
-        sliceComputeShader.SetTexture(dilateKernel, "_DensityTex", densityTex);
-        sliceComputeShader.SetBuffer(dilateKernel, "_DensityClasses", densityClassesBuffer);
-
-        // Run dilate
-        for (int i = 0; i < DilateIterations; i++)
+        if(BlurImage)
         {
-            if(i % 2 == 0)
-            {
-                sliceComputeShader.SetTexture(dilateKernel, "_Result", prev);
-                sliceComputeShader.SetTexture(dilateKernel, "_PrevFrame", result);
-            }
-            else
-            {
-                sliceComputeShader.SetTexture(dilateKernel, "_Result", result);
-                sliceComputeShader.SetTexture(dilateKernel, "_PrevFrame", prev);
-            }
-            sliceComputeShader.Dispatch(dilateKernel, threadGroupsX, threadGroupsY, threadGroupsZ);
-        }
+            RenderTexture prev = new RenderTexture(densityTex.width, densityTex.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+            prev.enableRandomWrite = true;
 
-        if(DilateIterations % 2 == 1)
-        {
+            int blurKernel = sliceComputeShader.FindKernel("Blur");
+            sliceComputeShader.SetTexture(blurKernel, "_DensityTex", densityTex);
+            sliceComputeShader.SetTexture(blurKernel, "_GradientTex", gradientTex);
+            sliceComputeShader.SetBuffer(blurKernel, "_DensityClasses", densityClassesBuffer);
+
+            sliceComputeShader.SetTexture(blurKernel, "_Result", prev);
+            sliceComputeShader.SetTexture(blurKernel, "_PrevFrame", result);
+
+            sliceComputeShader.Dispatch(blurKernel, threadGroupsX, threadGroupsY, threadGroupsZ);
+
+            result.Release();
             result = prev;
         }
+        
 
         int createImageKernel = sliceComputeShader.FindKernel("CreateImage");
         sliceComputeShader.SetTexture(createImageKernel, "_Result", result);

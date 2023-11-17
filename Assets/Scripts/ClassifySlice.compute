@@ -1,86 +1,29 @@
 #pragma kernel Classify
-#pragma kernel Dilate
+#pragma kernel Blur
 #pragma kernel CreateImage
 
 #include "Assets/Shaders/Library/Classification.hlsl"
 #include "Assets/Shaders/Library/Common.hlsl"
 
 
-
 Texture3D<half> _DensityTex;
 Texture3D<half3> _GradientTex;
+
+float _RangeMin;
+float _RangeMax;
 
 RWTexture2D<half4> _Result;
 Texture2D<half4> _PrevFrame;
 
 int _Slice;
 bool _DisplayGrayscale;
+float _FadeOut;
+float4 _Dimension;
 
-half4 GetColor(int index)
+float GetDensity01(int3 id)
 {
-    if (index == 0)
-    {
-        return half4(0.3, 0.2, 0.8, 1);
-    }
-    if (index == 1)
-    {
-        return half4(0.8, 0.2, 0.3, 1);
-    }
-    if (index == 2)
-    {
-        return half4(0.2, 0.8, 0.3, 1);
-    }
-    return 0;
-}
-
-float GetGradient(float density)
-{
-    if (InDensityRange(density, 0))
-    {
-        return _DensityClasses[0].gradientLimit;
-    }
-    else if (InDensityRangeMinMax(GetMax(0), GetMin(1), density))
-    {
-        return lerp(_DensityClasses[0].gradientLimit, _DensityClasses[1].gradientLimit, InverseLerp(GetMax(0), GetMin(1), density));
-    }
-    else if (InDensityRange(density, 1))
-    {
-        return _DensityClasses[1].gradientLimit;
-    }
-    else if (InDensityRangeMinMax(GetMax(1), GetMin(2), density))
-    {
-        return lerp(_DensityClasses[1].gradientLimit, _DensityClasses[2].gradientLimit, InverseLerp(GetMax(1), GetMin(2), density));
-    }
-    else if (InDensityRange(density, 2))
-    {
-        return _DensityClasses[2].gradientLimit;
-    }
-    return 0.06;
-}
-
-float GetGrayscale(float density)
-{
-    if (InDensityRange(density, 0))
-    {
-        return 0.1;
-    }
-    else if (InDensityRangeMinMax(GetMax(0), GetMin(1), density))
-    {
-        return lerp(0.1, 0.4, InverseLerp(GetMax(0), GetMin(1), density));
-    }
-    else if (InDensityRange(density, 1))
-    {
-        return 0.4;
-    }
-    else if (InDensityRangeMinMax(GetMax(1), GetMin(2), density))
-    {
-        return lerp(0.4, 1, InverseLerp(GetMax(1), GetMin(2), density));
-    }
-    else if (InDensityRange(density, 2))
-    {
-        return 1;
-    }
-    return 0;
+    float density = _DensityTex[id];
+    return (density - _RangeMin) / (_RangeMax - _RangeMin);
 }
 
 [numthreads(8, 8, 1)]
@@ -88,12 +31,10 @@ void Classify(uint3 id : SV_DispatchThreadID)
 {
     uint3 index = uint3(id.xy, _Slice);
     
-    int bufferIndex = 512 * id.y + id.x;
-    
     half density = _DensityTex[index];
-    half3 gradient = _GradientTex[index].xyz * 2 - 1;
+    density = clamp(density, _RangeMin, _RangeMax);
     
-    float value = density;
+    half3 gradient = _GradientTex[index].xyz * 2 - 1;
     
     half4 color = 0;
     
@@ -104,16 +45,16 @@ void Classify(uint3 id : SV_DispatchThreadID)
     
     float4 w = InverseLerpVector4(gradientLimit, 0, length(gradient));
     
-    _Result[id.xy] = GetGrayscale(density);
-    
     color.r = GetClassDensity(density, 0) * w.r;
     color.g = GetClassDensity(density, 1) * w.g;
     color.b = GetClassDensity(density, 2) * w.b;
     
+    // Fade out factor
+    float x01 = abs((id.x / _Dimension.x) * 2 - 1);
+    float y01 = abs((id.y / _Dimension.y) * 2 - 1);
+    float fadeOut = (1 - smoothstep(_FadeOut, _FadeOut + 0.01, length(float2(x01, y01))));
     
-    color.g = GetClassDensity(density, 1) * w.g;
-    
-    _Result[id.xy] = color;
+    _Result[id.xy] = color * fadeOut;
 }
 
 float Gauss(float sigma, int x, int y)
@@ -153,10 +94,12 @@ float4 GaussianBlur(int3 id)
 Texture2D<half> PrevFrame;
 
 [numthreads(8, 8, 1)]
-void Dilate(uint3 id : SV_DispatchThreadID)
+void Blur(uint3 id : SV_DispatchThreadID)
 {
     uint3 index = uint3(id.xy, _Slice);
     half density = _DensityTex[index];
+    density = clamp(density, _RangeMin, _RangeMax);
+    
     half3 gradient = _GradientTex[index].xyz * 2 - 1;
     
     int bufferIndex = 512 * id.y + id.x;
@@ -199,24 +142,15 @@ void Dilate(uint3 id : SV_DispatchThreadID)
     ownGrayscale.r = GetClassDensity(density, 0) * w.r;
     ownGrayscale.g = GetClassDensity(density, 1) * w.g;
     ownGrayscale.b = GetClassDensity(density, 2) * w.b;
-
-    //if (!InSoftDensityRange(density, 2))
-        //w.r = 0;
-
-    //if (!InSoftDensityRange(density, 1))
-        //w.g = 0;
-
-    //if (!InSoftDensityRange(density, 0))
-        //w.b = 0;
     
-    //w = 0.3 + 0.7 * w;
+    // Fade out factor
+    float x01 = abs((id.x / _Dimension.x) * 2 - 1);
+    float y01 = abs((id.y / _Dimension.y) * 2 - 1);
+    float fadeOut = (1 - smoothstep(_FadeOut, _FadeOut + 0.01, length(float2(x01, y01))));
+    ownGrayscale *= fadeOut;
+    
     float4 gauss = GaussianBlur(id);
     _Result[id.xy] = lerp(gauss, ownGrayscale, w);
-    //_Result[id.xy] = color / totalWeight;
-    
-    //_Result[id.xy] = lerp(ownGrayscale, color / totalWeight, w);
-    
-    //_Result[id.xy] = lerp(ownGrayscale, neighborGrayscale / 8.0, w);
 }
     
 
@@ -226,10 +160,8 @@ RWTexture2D<half4> _Image;
 void CreateImage(uint3 id : SV_DispatchThreadID)
 {
     uint3 index = uint3(id.xy, _Slice);
-    half density = _DensityTex[index];
+    half density = GetDensity01(index);
     half3 gradient = _GradientTex[index].xyz * 2 - 1;
-    
-    //_Result[id.xy] = _Result[id.xy].g;
     
     float width = 0.5;
     
@@ -247,12 +179,13 @@ void CreateImage(uint3 id : SV_DispatchThreadID)
     }
     
     
-    _Result[id.xy] = pow(saturate(value), 1);
+    //_Result[id.xy] = half4(gradient, 1);
     
     if (_DisplayGrayscale)
     {
         _Result[id.xy] = density;
         //_Result[id.xy] = 1 - length(gradient);
     }
+
 }
 

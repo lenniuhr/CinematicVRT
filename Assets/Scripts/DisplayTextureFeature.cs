@@ -43,7 +43,7 @@ public class DisplayTextureFeature : ScriptableRendererFeature
             {
                 cmd.BeginSample(name);
 
-                RenderTexture display = FindObjectOfType<VolumeClassifier>().displayImage;
+                Texture display = FindObjectOfType<VolumeClassifier>().displayImage;
                 cmd.Blit(display, sourceID);
                 cmd.Blit(display, sourceID);
 

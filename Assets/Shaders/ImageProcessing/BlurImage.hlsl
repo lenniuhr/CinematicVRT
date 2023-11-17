@@ -4,7 +4,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Assets/Shaders/Library/DefaultInput.hlsl"
 
-TEXTURE2D(_MainTex);    SAMPLER(sampler_point_clamp);
+TEXTURE2D(_MainTex);    SAMPLER(sampler_point_repeat);
 float4 _MainTex_TexelSize;
 int _KernelRadius;
 float _Sigma;
@@ -33,9 +33,9 @@ float3 GaussianBlur(float2 uv)
         {
             float2 nUV = uv + _MainTex_TexelSize.xy * int2(x, y);
             
-            if (nUV.x > 0 && nUV.y > 0 && nUV.x < 1 && nUV.y < 1)
+            if (nUV.y > 0 && nUV.y < 1)
             {
-                float3 value = SAMPLE_TEXTURE2D(_MainTex, sampler_point_clamp, nUV).rgb;
+                float3 value = SAMPLE_TEXTURE2D(_MainTex, sampler_point_repeat, nUV).rgb;
             
                 float weight = Gauss(x, y);
             
@@ -53,7 +53,7 @@ float3 BilateralBlur(float2 uv)
     float3 color = 0;
     float3 totalWeight = 0;
     
-    float3 center = SAMPLE_TEXTURE2D(_MainTex, sampler_point_clamp, uv).rgb;
+    float3 center = SAMPLE_TEXTURE2D(_MainTex, sampler_point_repeat, uv).rgb;
     
     for (int x = -_KernelRadius; x <= _KernelRadius; x++)
     {
@@ -63,7 +63,7 @@ float3 BilateralBlur(float2 uv)
             
             if (nUV.x > 0 && nUV.y > 0 && nUV.x < 1 && nUV.y < 1)
             {
-                float3 value = SAMPLE_TEXTURE2D(_MainTex, sampler_point_clamp, nUV).rgb;
+                float3 value = SAMPLE_TEXTURE2D(_MainTex, sampler_point_repeat, nUV).rgb;
             
                 float3 weight = Gauss(x, y) * GaussSimilarity(center, value);
             

@@ -27,17 +27,18 @@ MonoBehaviour:
   m_Name: Render Mode
   m_EditorClassIdentifier: 
   m_Active: 1
-  renderMode: 0
+  renderMode: 2
   renderPassEvent: 300
   settings:
     StepSize: 0.001
-    Threshold: 0.063
+    Threshold: 0.05
     Color: {r: 0.9811321, g: 0.89690286, b: 0.6803133, a: 1}
   octreeSettings:
     OctreeLevel: 7
-    Threshold: 0.377
+    Threshold: 0
   cinematicSettings:
-    Threshold: 0.101
+    Threshold: 0.05
+    Accumulate: 0
     Color: {r: 0.84900004, g: 0.75132555, b: 0.601941, a: 1}
 --- !u!114 &-3347501342411450359
 MonoBehaviour:
@@ -75,11 +76,12 @@ MonoBehaviour:
     debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7,
       type: 3}
   m_RendererFeatures:
+  - {fileID: 6491367237887650202}
   - {fileID: 3674167480162463381}
   - {fileID: -3618375333725541457}
   - {fileID: -3347501342411450359}
   - {fileID: -4388415177794983309}
-  m_RendererFeatureMap: 952e604cdb43fd32afeb4011cef2c8cd09186cd043498bd173ea9888a53719c3
+  m_RendererFeatureMap: 9ae9e6301cf8155a952e604cdb43fd32afeb4011cef2c8cd09186cd043498bd173ea9888a53719c3
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 0}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
@@ -136,3 +138,17 @@ MonoBehaviour:
   renderPassEvent: 1000
   settings:
     MaxBounces: 7
+--- !u!114 &6491367237887650202
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5c60dd3890201b409aafed88c9460cd, type: 3}
+  m_Name: SetDepthFeature
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  renderPassEvent: 350

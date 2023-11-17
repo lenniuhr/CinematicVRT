@@ -11,14 +11,16 @@ public class RawImporter
     private int height = 256;
     private int depth;
     private DataFormat dataFormat;
+    private float valueOffset;
 
-    public RawImporter(string filePath, int width, int height, int depth, DataFormat dataFormat)
+    public RawImporter(string filePath, int width, int height, int depth, DataFormat dataFormat, float valueOffset)
     {
         this.filePath = filePath;
         this.width = width;
         this.height = height;
         this.depth = depth;
         this.dataFormat = dataFormat;
+        this.valueOffset = valueOffset;
     }
     
     public async Task<VolumeDataset> ImportDataAsync()
@@ -43,7 +45,7 @@ public class RawImporter
             return null;
         }
 
-        float[] data = new float[width * height * depth];
+        //float[] data = new float[width * height * depth];
 
         ushort[] textureData = new ushort[width * height * depth];
 
@@ -54,8 +56,7 @@ public class RawImporter
             float max = float.MinValue;
             for (int i = 0; i < width * height * depth; i++)
             {
-                float value = (float)ReadDataValue(reader);
-                data[i] = value;
+                float value = (float)ReadDataValue(reader) + valueOffset;
                 textureData[i] = Mathf.FloatToHalf(value);
 
                 if (value > max) max = value;
@@ -79,8 +80,6 @@ public class RawImporter
 
         dataset.dataTex = tex;
         dataset.dataTex.name = "Data Texture";
-
-        dataset.SetData(data);
 
         return dataset;
     }
@@ -127,8 +126,6 @@ public class RawImporter
             dataset.minValue = min;
             dataset.maxValue = max;
         });
-
-        dataset.SetData(data);
 
         return dataset;
     }

@@ -4,9 +4,13 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Assets/Shaders/Library/OctreeUtils.hlsl"
 
+Texture3D<half> _DensityTex;
+Texture3D<half4> _ClassifyTex;  SAMPLER(sampler_ClassifyTex);
+
 TEXTURE3D(_VolumeTex);  SAMPLER(sampler_point_clamp);
 
 float4 _VolumeTexelSize;
+float4 _Dimension;
 
 RWStructuredBuffer<float> _OctreeBuffer;
 
@@ -21,17 +25,27 @@ float SampleCell(uint3 id, uint dim)
     int3 texelMin = floor(cellMin / _VolumeTexelSize.xyz);
     int3 texelMax = floor(cellMax / _VolumeTexelSize.xyz);
 
-    float maxVal = 0;
-    for (int x = texelMin.x; x <= texelMax.x; x++)
+    float maxVal = -100000;
+    for (int x = texelMin.x - 1; x <= texelMax.x + 1; x++)
     {
-        for (int y = texelMin.y; y <= texelMax.y; y++)
+        for (int y = texelMin.y - 1; y <= texelMax.y + 1; y++)
         {
-            for (int z = texelMin.z; z <= texelMax.z; z++)
+            for (int z = texelMin.z - 1; z <= texelMax.z + 1; z++)
             {
                 float3 uv = float3(x + 0.5, y + 0.5, z + 0.5) * _VolumeTexelSize.xyz;
                 uv = clamp(0, 1, uv);
-                float value = SAMPLE_TEXTURE3D_LOD(_VolumeTex, sampler_point_clamp, uv, 0).r;
-                maxVal = max(maxVal, value);
+                
+                //half value = SAMPLE_TEXTURE3D_LOD(_VolumeTex, sampler_point_clamp, uv, 0).r;
+                
+                int3 index = int3(clamp(x, 0, _Dimension.x - 1), clamp(y, 0, _Dimension.y - 1), clamp(z, 0, _Dimension.z - 1));
+                
+                half4 value = _ClassifyTex[index];
+                
+                //float4 value = SAMPLE_TEXTURE3D_LOD(_ClassifyTex, sampler_point_clamp, uv, 0).r;
+                
+                float val = max(max(max(value.r, value.g), value.b), value.a);
+                
+                maxVal = max(maxVal, val);
             }
         }
     }
@@ -64,7 +78,7 @@ void GenerateLevel(uint3 id : SV_DispatchThreadID)
     if (id.x >= dim || id.y >= dim || id.z >= dim)
         return;
     
-    float value = 0;
+    float value = -100000;
     for (int i = 0; i < 8; i++)
     {
         int3 childId = (id * 2) + OFFSETS[i];

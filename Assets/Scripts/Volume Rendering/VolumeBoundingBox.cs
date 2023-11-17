@@ -9,13 +9,11 @@ public class VolumeBoundingBox : MonoBehaviour
 {
     public VolumeDataset dataset;
 
-    [Range(0, 1)]
-    public float Roughness;
-    [Range(0, 1)]
-    public float Metallicness;
-
     private Texture3D dataTexture;
-    private Texture3D gradientTexture;
+    private RenderTexture gradientTexture2;
+
+
+    public ComputeShader computeShader;
 
     private void Update()
     {
@@ -34,7 +32,7 @@ public class VolumeBoundingBox : MonoBehaviour
     private void OnValidate()
     {
         Debug.Log("Set gradient tex");
-        Shader.SetGlobalTexture("_GradientTex", gradientTex);
+        Shader.SetGlobalTexture("_GradientTex", gradientTexture2);
 
         UpdateShaderVariables();
     }
@@ -44,17 +42,17 @@ public class VolumeBoundingBox : MonoBehaviour
         return dataTexture;
     }
 
-    public Texture3D GetGradientexture()
+    public RenderTexture GetGradientTexture()
     {
-        return gradientTexture;
+        return gradientTexture2;
     }
 
-    public async void ReloadTextures()
+    public void ReloadTextures()
     {
         if (dataset == null) return;
 
-        dataTexture = await dataset.GetTexture();
-        gradientTexture = await dataset.GetGradientTexture();
+        //dataTexture = await dataset.GetTexture();
+        dataTexture = dataset.dataTex;
 
         GenerateGradientTexture();
 
@@ -63,9 +61,7 @@ public class VolumeBoundingBox : MonoBehaviour
         if (dataset != null)
         {
             transform.localScale = dataset.GetScale();
-            Shader.SetGlobalTexture("_VolumeTex", dataTexture);
-            //Shader.SetGlobalTexture("_GradientTex", gradientTexture);
-
+            Shader.SetGlobalTexture("_GradientTex", gradientTexture2);
             Shader.SetGlobalTexture("_VolumeTex", dataset.dataTex);
         }
         else
@@ -83,14 +79,7 @@ public class VolumeBoundingBox : MonoBehaviour
         Shader.SetGlobalVector("_VolumeScale", transform.localScale);
         Shader.SetGlobalMatrix("_VolumeWorldToLocalMatrix", transform.worldToLocalMatrix);
         Shader.SetGlobalMatrix("_VolumeLocalToWorldMatrix", transform.localToWorldMatrix);
-
-        Shader.SetGlobalFloat("_Roughness", Roughness);
-        Shader.SetGlobalFloat("_Metallicness", Metallicness);
     }
-
-    public ComputeShader computeShader;
-
-    private RenderTexture gradientTex;
 
     public void GenerateGradientTexture()
     {
@@ -101,13 +90,14 @@ public class VolumeBoundingBox : MonoBehaviour
 
         if (densityTex == null) return;
 
-        ShaderHelper.CreateRenderTexture3D(ref gradientTex, densityTex.width, densityTex.height, densityTex.depth, "Gradient", RenderTextureFormat.ARGB32);
+        ShaderHelper.CreateRenderTexture3D(ref gradientTexture2, densityTex.width, densityTex.height, densityTex.depth, "Gradient", RenderTextureFormat.ARGB32);
 
         // Run compute shader
         computeShader.SetTexture(kernel, "_DensityTex", densityTex);
-        computeShader.SetTexture(kernel, "_GradientTex", gradientTex);
-        computeShader.SetFloat("_MinValue", dataset.minValue);
-        computeShader.SetFloat("_MaxValue", dataset.maxValue);
+        computeShader.SetTexture(kernel, "_GradientTex", gradientTexture2);
+        computeShader.SetFloat("_RangeMin", dataset.GetRangeMin());
+        computeShader.SetFloat("_RangeMax", dataset.GetRangeMax());
+        computeShader.SetVector("_Dimension", new Vector4(densityTex.width, densityTex.height, densityTex.depth));
 
         Debug.Log($"Texture size: ({densityTex.width}, {densityTex.height}, {densityTex.depth})...");
 
@@ -118,8 +108,6 @@ public class VolumeBoundingBox : MonoBehaviour
 
         Debug.Log($"Dispatch Size: ({threadGroupsX}, {threadGroupsY}, {threadGroupsZ})");
         computeShader.Dispatch(kernel, threadGroupsX, threadGroupsY, threadGroupsZ);
-
-        //Shader.SetGlobalTexture("_GradientTex", gradientTex);
 
         Debug.Log("Finished classification");
     }

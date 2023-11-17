@@ -11,6 +11,11 @@ public class TextureGeneratorEditor : Editor
 
         DrawDefaultInspector();
 
+        if (GUILayout.Button("Blur Cubemap"))
+        {
+            generator.BlurCubemap();
+        }
+
         if (GUILayout.Button("Blur Texture"))
         {
             generator.BlurTexture2D();

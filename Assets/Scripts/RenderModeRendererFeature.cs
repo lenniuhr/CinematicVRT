@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using static UnityEditor.ShaderData;
 using static UnityEngine.Mathf;
 
 public class RenderModeRendererFeature : ScriptableRendererFeature
@@ -24,7 +25,8 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
     [Serializable]
     public class CinematicSettings
     {
-        public float Threshold = 0.5f;
+        public float Threshold = 0.05f;
+        public bool Accumulate = false;
         public Color Color = Color.white;
     }
 
@@ -88,6 +90,7 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
 
         private RenderTexture resultTexture;
 
+        private bool accumulate;
         int frameID = 0;
         
         enum Pass
@@ -104,6 +107,10 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             material.SetFloat("_Threshold", settings.Threshold);
             material.SetColor("_Color", settings.Color.linear);
 
+            Texture classifyTex = Shader.GetGlobalTexture("_ClassifyTex");
+            Debug.Log(classifyTex);
+
+            accumulate = settings.Accumulate;
             frameID = 0;
         }
 
@@ -234,7 +241,8 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
 
-            frameID++;
+            if(accumulate)
+                frameID++;
         }
     }
 
@@ -316,6 +324,7 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
         private string name = "Octree Rendering";
         private Material material;
         private RenderTargetIdentifier sourceID;
+        private RenderTargetIdentifier depthID;
 
         enum Pass
         {
@@ -337,6 +346,7 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             UpdateCameraParams(renderingData.cameraData.camera);
 
             sourceID = renderingData.cameraData.renderer.cameraColorTarget;
+            depthID = renderingData.cameraData.renderer.cameraDepthTarget;
         }
 
         void UpdateCameraParams(Camera cam)

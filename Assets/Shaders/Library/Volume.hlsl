@@ -3,13 +3,15 @@
 
 #include "Assets/Shaders/Library/Common.hlsl"
 #include "Assets/Shaders/Library/Tricubic.hlsl"
+#include "Assets/Shaders/Library/RayTracingMaterial.hlsl"
 
 #define BOX_MIN float3(-0.5, -0.5, -0.5)
 #define BOX_MAX float3(0.5, 0.5, 0.5)
-#define SMALL_OFFSET 0.0001
+#define SMALL_OFFSET 0.0000
 
 TEXTURE3D(_VolumeTex);  SAMPLER(sampler_VolumeTex);
 TEXTURE3D(_GradientTex);  SAMPLER(sampler_GradientTex);
+TEXTURE3D(_ClassifyTex);  SAMPLER(sampler_ClassifyTex);
 
 float3 _VolumePosition;
 float3 _VolumeScale;
@@ -20,16 +22,12 @@ float4x4 _VolumeLocalToWorldMatrix;
 float3 _ViewParams;
 float4x4 _CamLocalToWorldMatrix;
 
-struct RayTracingMaterial
-{
-    float3 color;
-};
-
 struct Ray
 {
     float3 originOS;
     float3 dirOS;
     float3 dirWS;
+    int type;
 };
 
 struct HitInfo
@@ -47,8 +45,30 @@ float SampleDensity(float3 uv)
     {
         return 0;
     }
-    //return tex3DTricubic(_VolumeTex, sampler_VolumeTex, uv, float3(512, 512, 460)).r;
     return SAMPLE_TEXTURE3D_LOD(_VolumeTex, sampler_VolumeTex, uv, 0).r;
+}
+
+float3 SampleNormal(float3 uv)
+{
+    if (uv.x < 0.0 || uv.y < 0.0 || uv.z < 0.0 || uv.x > 1.0 || uv.y > 1.0 || uv.z > 1.0)
+    {
+        return 0;
+    }
+    
+    float3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
+    //float3 gradient = tex3DTricubic(_GradientTex, sampler_GradientTex, uv, float3(512, 512, 460)).xyz * 2 - 1;
+    
+    return normalize(gradient);
+}
+
+float4 SampleClassification(float3 uv)
+{
+    if (uv.x < 0.0 || uv.y < 0.0 || uv.z < 0.0 || uv.x > 1.0 || uv.y > 1.0 || uv.z > 1.0)
+    {
+        return 0;
+    }
+    return SAMPLE_TEXTURE3D_LOD(_ClassifyTex, sampler_ClassifyTex, uv, 0);
+    //return tex3DTricubic(_ClassifyTex, sampler_ClassifyTex, uv, float3(512, 512, 460));
 }
 
 bool InVolumeBoundsOS(float3 positionOS)
@@ -63,9 +83,9 @@ float3 GetVolumeCoords(float3 positionOS)
     return InverseLerp(BOX_MIN, BOX_MAX, positionOS);
 }
 
-Ray GetRay(float2 screenUV)
+Ray GetRay(float2 screenUV, float2 pixelOffset)
 {
-    float3 viewPointLocal = float3(screenUV - 0.5, 1) * _ViewParams;
+    float3 viewPointLocal = float3(screenUV - 0.5 + pixelOffset, 1) * _ViewParams;
     float3 viewPoint = mul(_CamLocalToWorldMatrix, float4(viewPointLocal, 1)).xyz;
     
     float3 originWS = _WorldSpaceCameraPos;
@@ -73,9 +93,15 @@ Ray GetRay(float2 screenUV)
     
     Ray ray;
     ray.originOS = mul(_VolumeWorldToLocalMatrix, float4(originWS, 1)).xyz;
-    ray.dirOS = mul((float3x3) _VolumeWorldToLocalMatrix, dirWS);
+    ray.dirOS = normalize(mul((float3x3) _VolumeWorldToLocalMatrix, dirWS));
     ray.dirWS = dirWS;
+    ray.type = 0;
     return ray;
+}
+
+Ray GetRay(float2 screenUV)
+{
+    return GetRay(screenUV, float2(0, 0));
 }
 
 bool RayBoundingBoxOS(Ray ray, out float3 hitPoint)

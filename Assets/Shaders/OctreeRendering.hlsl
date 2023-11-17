@@ -47,17 +47,14 @@ float4 RayMarchOctree(float3 position, Ray ray)
             }
         }
         
-        float3 hitPoint;
-        int3 nextId;
-        RayOctree(octreeLevel, octreeId, position, ray.dirOS, nextId, hitPoint);
+        int3 lastId = octreeId;
+        RayOctree(ray.dirOS, octreeLevel, octreeId, position);
         
-        if (Equals(nextId, octreeId))
+        if (Equals(lastId, octreeId))
         {
-            return float4(0, 1, 0, 1);
+            return float4(1, 0, 1, 1);
         }
-            
-        position = hitPoint;
-        octreeId = nextId;
+        
         steps++;
         
         // Break when the octree id is out of bounds

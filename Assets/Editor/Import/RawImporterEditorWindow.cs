@@ -9,6 +9,7 @@ public class RawImporterEditorWindow : EditorWindow
     private int dimZ = 256;
     private DataFormat dataFormat = DataFormat.UInt8;
     private Vector3 spacing = Vector3.one;
+    private float valueOffset = 0;
 
     private void CreateGUI()
     {
@@ -27,6 +28,7 @@ public class RawImporterEditorWindow : EditorWindow
         dimZ = EditorGUILayout.IntField("Z Dimension", dimZ);
         dataFormat = (DataFormat)EditorGUILayout.EnumPopup("Data Format", dataFormat);
         spacing = EditorGUILayout.Vector3Field("Spacing", spacing);
+        valueOffset = EditorGUILayout.FloatField("Value Offset", valueOffset);
 
         if (GUILayout.Button("Import"))
         {
@@ -40,7 +42,7 @@ public class RawImporterEditorWindow : EditorWindow
 
     private async void ImportDatasetAsync()
     {
-        RawImporter importer = new RawImporter(file, dimX, dimY, dimZ, dataFormat);
+        RawImporter importer = new RawImporter(file, dimX, dimY, dimZ, dataFormat, valueOffset);
         VolumeDataset dataset = await importer.ImportDataAsync();
         dataset.spacing = spacing;
 
