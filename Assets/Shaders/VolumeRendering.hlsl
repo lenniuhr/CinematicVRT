@@ -181,6 +181,8 @@ float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
             output.rgb = PBRLighting(hitInfo.material.color, hitInfo.material.roughness, hitInfo.material.metallicness, -ray.dirWS, normalWS, gi);
             output.a = 1;
             
+            output.rgb = hitInfo.normalOS;
+            
             return output;
         }
 

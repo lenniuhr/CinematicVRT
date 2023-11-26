@@ -138,20 +138,6 @@ int IncreaseOctreeLevel(int level, float3 uv)
     return newLevel;
 }
 
-float Halton(uint base, uint index)
-{
-    float result = 0;
-    float digitWeight = 1;
-    while (index > 0u)
-    {
-        digitWeight = digitWeight / float(base);
-        uint nominator = index % base;
-        result += float(nominator) * digitWeight;
-        index = index / base;
-    }
-    return result;
-}
-
 
 HitInfo RayMarchVolumeCollision(float3 position, Ray ray, inout uint rngState)
 {
@@ -172,24 +158,70 @@ HitInfo RayMarchVolumeCollision(float3 position, Ray ray, inout uint rngState)
            
         float3 uv = GetVolumeCoords(position);
         float density = SampleDensity(uv);
+        float4 classification = SampleClassification(uv);
+        
+        if (density > _Threshold)
+        {
+            float3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
+                
+            float3 normalOS = normalize(gradient);
+                
+            hitInfo.didHit = true;
+            hitInfo.hitPointOS = position - ray.dirOS * _StepSize;
+            hitInfo.normalOS = normalOS;
+            hitInfo.material.color = GetClassColor(classification);;
+                
+            return hitInfo;
+        }
+        position += normalize(ray.dirOS) * _StepSize;
+    }
+    return hitInfo;
+}
+
+
+HitInfo RayMarchInsideVolume(float3 position, Ray ray, float radius, inout uint rngState)
+{
+    HitInfo hitInfo = (HitInfo) 0;
+    
+    float _StepSize = 0.001;
+    
+    float3 startPos = position;
+    
+    position += ray.dirOS * 0.001;
+    
+    [loop]
+    for (int i = 0; i < 200; i++)
+    {
+        if (!InVolumeBoundsOS(position))
+        {
+            return hitInfo;
+        }
+        
+        if (distance(position, startPos) > radius)
+        {
+            return hitInfo;
+            hitInfo.hitPointOS = position;
+        }
+           
+        float3 uv = GetVolumeCoords(position);
+        float density = SampleDensity(uv);
         
         float4 classification = SampleClassification(uv);
         
-        if (length(classification) > _Threshold)
+        if (length(classification) < _Threshold)
         {
-            if (RandomValue(rngState) > 0.8)
-            {
-                float3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
+            float3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
                 
-                float3 normalOS = normalize(gradient);
+            float3 normalOS = normalize(gradient);
                 
-                hitInfo.didHit = true;
-                hitInfo.hitPointOS = position - ray.dirOS * _StepSize;
-                hitInfo.normalOS = normalOS;
-                hitInfo.material.color = GetClassColor(classification);;
+            hitInfo.didHit = true;
+            hitInfo.hitPointOS = position - ray.dirOS * _StepSize;
+            hitInfo.normalOS = normalOS;
+            hitInfo.material.color = GetClassColor(classification);
                 
-                return hitInfo;
-            }
+            hitInfo.hitPointOS = lerp(startPos, hitInfo.hitPointOS, 0.5);
+            
+            return hitInfo;
         }
         position += normalize(ray.dirOS) * _StepSize;
     }
@@ -279,8 +311,6 @@ HitInfo CalculateRayVolumeCollision(float3 position, Ray ray)
     }
     return hitInfo;
 }
-
-
 
 float3x3 getNormalSpace(in float3 normal)
 {
@@ -542,27 +572,211 @@ float3 Trace(float3 position, Ray ray, inout uint rngState)
     return incomingLight;
 }
 
+HitInfo RayMarchVolumeCollisions(float3 position, Ray ray, float radius, float3 pos0, inout uint rngState)
+{
+    HitInfo hitInfos[2];
+    
+    int hits = 0;
+    
+    float _StepSize = 0.001;
+    
+    int minSteps = ceil(radius / _StepSize);
+    
+    // Check if start pos is inside or outside volume
+    float3 uv = GetVolumeCoords(position);
+    float density = SampleDensity(uv);
+    bool insideVolume = density > _Threshold;
+    
+    [loop]
+    for (int i = 0; i < 200; i++)
+    {
+        if (i > minSteps && distance(position, pos0) > radius)
+        {
+            break;
+        }
+        
+        if (hits > 1)
+        {
+            break;
+        }
+           
+        float3 uv = GetVolumeCoords(position);
+        float density = SampleDensity(uv);
+        
+        if (insideVolume)
+        {
+            if (density < _Threshold)
+            {
+                float3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
+                float3 normalOS = normalize(gradient);
+                
+                hitInfos[hits].didHit = true;
+                hitInfos[hits].hitPointOS = position + ray.dirOS * _StepSize;
+                hitInfos[hits].normalOS = normalOS;
+                
+                insideVolume = false;
+                hits++;
+            }
+        }
+        else
+        {
+            if (density > _Threshold)
+            {
+                float3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
+                float3 normalOS = normalize(gradient);
+                
+                hitInfos[hits].didHit = true;
+                hitInfos[hits].hitPointOS = position - ray.dirOS * _StepSize;
+                hitInfos[hits].normalOS = normalOS;
+                
+                insideVolume = true;
+                hits++;
+            }
+        }
+        position += normalize(ray.dirOS) * _StepSize;
+    }        
+    
+    if (hits == 0)
+    {
+        return (HitInfo) 0;
+    }
+    else if (hits == 1)
+    {
+        return hitInfos[0];
+    }
+    else
+    {
+        float random = RandomValue(rngState);
+        if (random > 0.5)
+        {
+            return hitInfos[0];
+        }
+        else
+        {
+            return hitInfos[1];
+        }
+    }
+}
+
+float3 GetTangent(in float3 normal)
+{
+    float3 someVec = float3(1.0, 0.0, 0.0);
+    float dd = dot(someVec, normal);
+    float3 tangent = float3(0.0, 1.0, 0.0);
+    if (1.0 - abs(dd) > 1e-6)
+    {
+        tangent = normalize(cross(someVec, normal));
+    }
+    return tangent;
+}
+
+float _SSSRadius;
+float _DisneyD;
+
+float3 SampleSSSPosition(HitInfo hit, inout uint rngState)
+{
+    float radius = _SSSRadius;
+    
+    float phi = 2 * PI * RandomValue(rngState);
+    float theta = sqrt(RandomValue(rngState));
+
+    float3 normal = normalize(hit.normalOS);
+    float3 tangent = GetTangent(normal);
+
+    float3x3 rot = AngleAxis3x3(phi, normal);
+
+    float3 sampleOffset = mul(rot, tangent) * radius * theta;
+
+    float3 origin = hit.hitPointOS + (normal * radius) + sampleOffset;
+
+    return origin;
+}
+
+float ReflectanceProfile(float r, float d)
+{
+    float a = exp(-r / d) + exp(-r / (3 * d));
+    float b = 8 * PI * d * r;
+    return a / b;
+}
 
 float3 TraceSSS(float3 position, Ray ray, inout uint rngState)
 {
     float3 color = 1;
     float3 incomingLight = 0;
     
+    float radius = _SSSRadius;
+    
     for (int i = 0; i <= 2; i++)
     {
         HitInfo hit = RayMarchVolumeCollision(position, ray, rngState);
-        //HitInfo hit = TraverseOctree(position, ray);
         if (hit.didHit)
         {
-            ray.originOS = hit.hitPointOS;
-            ray.dirOS = normalize(normalize(hit.normalOS) + RandomDirection(rngState));
-            position = hit.hitPointOS;
-            color *= hit.material.color;
+            /*
+            Ray sssRay;
+            sssRay.originOS = hit.hitPointOS;
+            sssRay.dirOS = normalize(-hit.normalOS);
+            HitInfo innerHit = RayMarchInsideVolume(hit.hitPointOS, sssRay, radius, rngState);
+            
+            Ray innerRay;
+            innerRay.originOS = innerHit.hitPointOS;
+            innerRay.dirOS = RandomDirection(rngState);
+            HitInfo outerHit = RayMarchInsideVolume(innerHit.hitPointOS, innerRay, radius * 2, rngState);
+            
+            if (outerHit.didHit)
+            {
+                ray.originOS = outerHit.hitPointOS;
+                ray.dirOS = normalize(normalize(outerHit.normalOS) + RandomDirection(rngState));
+                position = outerHit.hitPointOS;
+                //color *= float3(0.7, 0.4, 0.3);
+            }
+            else
+            {
+                return 0;
+            }
+            */
+            
+            if (i == 0)
+            {
+                // Sample Disc
+            
+                float3 sssOrigin = SampleSSSPosition(hit, rngState);
+                Ray sssRay;
+                sssRay.originOS = sssOrigin;
+                sssRay.dirOS = normalize(-hit.normalOS);
+                
+                HitInfo sssHit = RayMarchVolumeCollisions(sssOrigin, sssRay, _SSSRadius, hit.hitPointOS, rngState);
+                
+                if (sssHit.didHit && distance(sssHit.hitPointOS, hit.hitPointOS) < _SSSRadius)
+                {
+                    // Calculate reflectance profile
+                    float r = distance(sssHit.hitPointOS, hit.hitPointOS);
+                    float rProfile = ReflectanceProfile(r, _DisneyD);
+                    //return rProfile;
+                    
+                    ray.originOS = sssHit.hitPointOS;
+                    ray.dirOS = normalize(normalize(sssHit.normalOS) + RandomDirection(rngState));
+                    position = sssHit.hitPointOS;
+                    color *= _Color * rProfile;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+            else
+            {
+                ray.originOS = hit.hitPointOS;
+                ray.dirOS = normalize(normalize(hit.normalOS) + RandomDirection(rngState));
+                position = hit.hitPointOS;
+                color *= hit.material.color;
+            }
         }
         else
         {
+            int rayType = (i == 0) ? 0 : 1;
+            
             float3 dirWS = normalize(mul((float3x3) _VolumeLocalToWorldMatrix, ray.dirOS));
-            float4 skyData = SampleEnvironment(dirWS, ray.type);
+            float4 skyData = SampleEnvironment(dirWS, rayType);
             incomingLight = color * skyData.rgb;
             break;
         }
@@ -597,7 +811,7 @@ float4 RaytraceFragment(Varyings IN) : SV_TARGET
     float3 hitPoint;
     if (RayBoundingBoxOS(ray, hitPoint))
     {
-        float3 color = TraceSSS(hitPoint, ray, rngState);
+        float3 color = Trace(hitPoint, ray, rngState);
         return float4(color, 1);
     }
             

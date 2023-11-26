@@ -13,6 +13,7 @@ float4 SampleEnvironment(float3 dirWS, int rayType)
     if (rayType == 0) // From camera
     {
         skyData = SAMPLE_TEXTURECUBE(_EnvironmentMap, sampler_EnvironmentMap, dirWS);
+        //skyData = 0;
     }
     else if (rayType == 1) // Diffuse bounce
     {
@@ -23,7 +24,11 @@ float4 SampleEnvironment(float3 dirWS, int rayType)
         skyData = SAMPLE_TEXTURECUBE(_ReflectionMap, sampler_ReflectionMap, dirWS);
     }
     
-    return saturate((dot(dirWS, float3(1, 0, 0)) - 0.5) * 2);
+    //skyData = SAMPLE_TEXTURECUBE(_IrradianceMap, sampler_IrradianceMap, dirWS);
+    //return saturate((dot(dirWS, float3(1, 0, 0)) - 0.5) * 2);
+    
+    //return 0;
+    
     
     return skyData;
 }

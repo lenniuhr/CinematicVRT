@@ -44,4 +44,18 @@ float3 RandomDirection(inout uint state)
     return normalize(float3(x, y, z));
 }
 
+float Halton(uint base, uint index)
+{
+    float result = 0;
+    float digitWeight = 1;
+    while (index > 0u)
+    {
+        digitWeight = digitWeight / float(base);
+        uint nominator = index % base;
+        result += float(nominator) * digitWeight;
+        index = index / base;
+    }
+    return result;
+}
+
 #endif
