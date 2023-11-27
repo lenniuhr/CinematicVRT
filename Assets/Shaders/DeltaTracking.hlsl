@@ -16,6 +16,8 @@ TEXTURE2D(_TransferTex);  SAMPLER(sampler_TransferTex);
 
 TEXTURECUBE(_Skybox);       SAMPLER(sampler_Skybox);
 
+TEXTURE2D(_1DTransferTex);  SAMPLER(sampler_1DTransferTex);
+
 
 float4 _Color;
 int _FrameID;
@@ -53,7 +55,7 @@ HitInfo DeltaTraceHomogenous(float3 position, Ray ray, inout uint rngState)
 
 float DensityToSigma(float density)
 {
-    return InverseLerp(130, 131, density);
+    return InverseLerp(45, 46, density);
 }
 
 void CoordinateSystem(float3 v1, out float3 v2, out float3 v3)
@@ -97,6 +99,15 @@ float3 SampleDirection(float3 direction, float g, inout uint rngState)
     return SphericalDirection(sinTheta, cosTheta, phi, v1, v2, direction);
 }
 
+float4 SampleColor(float density, float3 gradient)
+{
+    float density01 = InverseLerp(-1000.0, 2500.0, density);
+    
+    density01 += 0.1 * InverseLerp(0, 0.1, gradient);
+    
+    return SAMPLE_TEXTURE2D_LOD(_1DTransferTex, sampler_1DTransferTex, float2(density01, 0.05), 0);
+}
+
 HitInfo DeltaTraceHeterogenous(float3 position, Ray ray, inout uint rngState)
 {
     HitInfo hitInfo = (HitInfo) 0;
@@ -132,7 +143,8 @@ HitInfo DeltaTraceHeterogenous(float3 position, Ray ray, inout uint rngState)
             
             hitInfo.didHit = true;
             hitInfo.hitPointOS = samplePos;
-            hitInfo.material.color = GetClassColorFromDensity(density, gradient);
+            //hitInfo.material.color = GetClassColorFromDensity(density, gradient);
+            hitInfo.material.color = SampleColor(density, gradient);
             return hitInfo;
         }
     }

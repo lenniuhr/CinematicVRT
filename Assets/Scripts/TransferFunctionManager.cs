@@ -17,9 +17,9 @@ public class TransferFunctionManager : MonoBehaviour
 
     private void OnValidate()
     {
-        if (!enabled) return;//
+        if (!enabled) return;
 
-        GenerateTransferTex();
+        //GenerateTransferTex();
 
         Update1DTransferTex();
     }

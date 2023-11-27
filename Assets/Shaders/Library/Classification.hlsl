@@ -128,6 +128,8 @@ float4 GetClassColorFromDensity(float density, float3 gradient)
     float4 gradientLimits = GetGradientLimits();
     float4 w = InverseLerpVector4(gradientLimits, 0, length(gradient));
     
+    w = 1;
+    
     float4 uv = 0;
     uv.r = GetClassDensity(density, 0) * w.r;
     uv.g = GetClassDensity(density, 1) * w.g;

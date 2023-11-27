@@ -38,17 +38,17 @@ MonoBehaviour:
     Threshold: 0
   cinematicSettings:
     Threshold: 0.05
-    Accumulate: 1
+    Accumulate: 0
     Color: {r: 0.84900004, g: 0.75132555, b: 0.601941, a: 1}
     SSSRadius: 0.0302
     DisneyD: 4.67
   deltaTrackingettings:
-    SamplesPerPixel: 1
-    MaxSamples: 100
+    SamplesPerPixel: 4
+    MaxSamples: 1000
     Threshold: 92
-    Accumulate: 1
-    Color: {r: 0.8632076, g: 0.9586593, b: 1, a: 1}
-    SigmaT: 151.1
+    Accumulate: 0
+    Color: {r: 0.8820755, g: 0.9901793, b: 1, a: 1}
+    SigmaT: 139.2
     Blend: 0.1
 --- !u!114 &-3347501342411450359
 MonoBehaviour:
