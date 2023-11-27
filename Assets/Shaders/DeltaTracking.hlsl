@@ -5,6 +5,7 @@
 #include "Assets/Shaders/Library/Random.hlsl"
 #include "Assets/Shaders/Library/Volume.hlsl"
 #include "Assets/Shaders/Library/Environment.hlsl"
+#include "Assets/Shaders/Library/Classification.hlsl"
 
 TEXTURE2D(_CopyTex);    SAMPLER(sampler_point_clamp);
 TEXTURE2D(_Result);    
@@ -52,7 +53,7 @@ HitInfo DeltaTraceHomogenous(float3 position, Ray ray, inout uint rngState)
 
 float DensityToSigma(float density)
 {
-    return InverseLerp(35, 45, density);
+    return InverseLerp(130, 131, density);
 }
 
 void CoordinateSystem(float3 v1, out float3 v2, out float3 v3)
@@ -131,7 +132,7 @@ HitInfo DeltaTraceHeterogenous(float3 position, Ray ray, inout uint rngState)
             
             hitInfo.didHit = true;
             hitInfo.hitPointOS = samplePos;
-            hitInfo.material.color = normalOS;
+            hitInfo.material.color = GetClassColorFromDensity(density, gradient);
             return hitInfo;
         }
     }
@@ -157,7 +158,7 @@ float3 Trace(float3 position, Ray ray, inout uint rngState)
             ray.originOS = hit.hitPointOS;
             ray.dirOS = nextDir;
             ray.type = 1;
-            color *= _Color;
+            color *= hit.material.color;
         }
         else
         {
@@ -166,8 +167,6 @@ float3 Trace(float3 position, Ray ray, inout uint rngState)
             float4 skyData = SampleEnvironment(dirWS, ray.type);
             
             incomingLight = color * skyData.rgb;
-            
-            //incomingLight = 1;
             
             break;
         }

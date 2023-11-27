@@ -114,4 +114,27 @@ float GetClassDensity(float density, int id)
     return 0;
 }
 
+float4 GetGradientLimits()
+{
+    float4 gradientLimits = 0;
+    gradientLimits.r = _DensityClasses[0].gradientLimit;
+    gradientLimits.g = _DensityClasses[1].gradientLimit;
+    gradientLimits.b = _DensityClasses[2].gradientLimit;
+    return gradientLimits;
+}
+
+float4 GetClassColorFromDensity(float density, float3 gradient)
+{
+    float4 gradientLimits = GetGradientLimits();
+    float4 w = InverseLerpVector4(gradientLimits, 0, length(gradient));
+    
+    float4 uv = 0;
+    uv.r = GetClassDensity(density, 0) * w.r;
+    uv.g = GetClassDensity(density, 1) * w.g;
+    uv.b = GetClassDensity(density, 2) * w.b;
+    
+    return GetClassColor(uv);
+}
+
+
 #endif

@@ -16,15 +16,6 @@ float _RangeMax;
 float _FadeOut;
 float4 _Dimension;
 
-float4 GetGradientLimits()
-{
-    float4 gradientLimits = 0;
-    gradientLimits.r = _DensityClasses[0].gradientLimit;
-    gradientLimits.g = _DensityClasses[1].gradientLimit;
-    gradientLimits.b = _DensityClasses[2].gradientLimit;
-    return gradientLimits;
-}
-
 [numthreads(8, 8, 8)]
 void Classify(uint3 id : SV_DispatchThreadID)
 {

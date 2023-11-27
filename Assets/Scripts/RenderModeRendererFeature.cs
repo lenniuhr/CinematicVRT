@@ -36,6 +36,7 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
     public class DeltaTrackingSettings
     {
         public int SamplesPerPixel = 1;
+        public int MaxSamples = 100;
         public float Threshold = 0.05f;
         public bool Accumulate = false;
         public Color Color = Color.white;
@@ -398,6 +399,7 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
         int frameID = 0;
 
         int samplesPerPixel = 1;
+        int maxSamples = 1;
 
         enum Pass
         {
@@ -417,6 +419,7 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
 
             accumulate = settings.Accumulate;
             samplesPerPixel = settings.SamplesPerPixel;
+            maxSamples = settings.MaxSamples;
             frameID = 0;
         }
 
@@ -443,7 +446,7 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             cmd.GetTemporaryRT(currentFrame.id, desc, FilterMode.Point);
             cmd.GetTemporaryRT(prevFrame.id, desc, FilterMode.Point);
         }
-
+        
         public void CleanUp()
         {
             resultTexture?.Release();
@@ -491,29 +494,32 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
                     cmd.SetRenderTarget(resultTexture);
                     cmd.ClearRenderTarget(RTClearFlags.All, Color.clear, 0, 255);
                     frameID = 0;
-                }  
-
-                for (int i = 0; i < samplesPerPixel; i++)
+                }
+                
+                if(frameID < maxSamples)
                 {
-                    cmd.SetGlobalInteger("_FrameID", frameID);
+                    for (int i = 0; i < samplesPerPixel; i++)
+                    {
+                        cmd.SetGlobalInteger("_FrameID", frameID);
 
-                    // Copy "resultTexture" to "prevFrame"
-                    cmd.SetRenderTarget(prevFrame.id);
-                    cmd.SetGlobalTexture("_CopyTex", resultTexture);
-                    Draw(cmd, Pass.Copy);
+                        // Copy "resultTexture" to "prevFrame"
+                        cmd.SetRenderTarget(prevFrame.id);
+                        cmd.SetGlobalTexture("_CopyTex", resultTexture);
+                        Draw(cmd, Pass.Copy);
 
-                    // Render RayTracing Pass to "currentFrame"
-                    cmd.SetRenderTarget(currentFrame.id);
-                    cmd.ClearRenderTarget(RTClearFlags.All, Color.clear, 0, 255);
-                    Draw(cmd, Pass.DeltaTracking);
+                        // Render RayTracing Pass to "currentFrame"
+                        cmd.SetRenderTarget(currentFrame.id);
+                        cmd.ClearRenderTarget(RTClearFlags.All, Color.clear, 0, 255);
+                        Draw(cmd, Pass.DeltaTracking);
 
-                    // Accumulate "currentFrame" and "prevFrame" together to "resultTexture"
-                    cmd.SetRenderTarget(resultTexture);
-                    cmd.SetGlobalTexture("_PrevFrame", prevFrame.id);
-                    cmd.SetGlobalTexture("_CurrentFrame", currentFrame.id);
-                    Draw(cmd, Pass.Accumulate);
+                        // Accumulate "currentFrame" and "prevFrame" together to "resultTexture"
+                        cmd.SetRenderTarget(resultTexture);
+                        cmd.SetGlobalTexture("_PrevFrame", prevFrame.id);
+                        cmd.SetGlobalTexture("_CurrentFrame", currentFrame.id);
+                        Draw(cmd, Pass.Accumulate);
 
-                    frameID++;
+                        frameID++;
+                    }
                 }
 
                 // Copy "resultTexture" to source
