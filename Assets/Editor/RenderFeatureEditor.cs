@@ -25,7 +25,7 @@ public class RenderFeatureEditor : Editor
                 break;
             case RenderModeRendererFeature.RenderMode.OCTREE:
                 rf.octreeSettings.OctreeLevel = EditorGUILayout.IntSlider("Octree Level", rf.octreeSettings.OctreeLevel, 0, 7);
-                rf.octreeSettings.Threshold = EditorGUILayout.Slider("Threshold", rf.octreeSettings.Threshold, 0, 1);
+                rf.octreeSettings.Threshold = EditorGUILayout.Slider("Threshold", rf.octreeSettings.Threshold, -1000, 3000);
                 break;
             case RenderModeRendererFeature.RenderMode.RAYTRACE:
                 rf.cinematicSettings.Threshold = EditorGUILayout.Slider("Threshold", rf.cinematicSettings.Threshold, 0, 255);
@@ -36,7 +36,7 @@ public class RenderFeatureEditor : Editor
                 break;
             case RenderModeRendererFeature.RenderMode.DELTATRACKING:
                 rf.deltaTrackingettings.SamplesPerPixel = EditorGUILayout.IntSlider("Samples Per Pixel", rf.deltaTrackingettings.SamplesPerPixel, 1, 4);
-                rf.deltaTrackingettings.MaxSamples = EditorGUILayout.IntSlider("Max Samples", rf.deltaTrackingettings.MaxSamples, 1, 1000);
+                rf.deltaTrackingettings.MaxSamples = EditorGUILayout.IntSlider("Max Samples", rf.deltaTrackingettings.MaxSamples, 1, 10000);
                 rf.deltaTrackingettings.Threshold = EditorGUILayout.Slider("Threshold", rf.deltaTrackingettings.Threshold, 0, 255);
                 rf.deltaTrackingettings.SigmaT = EditorGUILayout.FloatField("Sigma T", rf.deltaTrackingettings.SigmaT);
                 rf.deltaTrackingettings.Accumulate = EditorGUILayout.Toggle("Accumulate", rf.deltaTrackingettings.Accumulate);

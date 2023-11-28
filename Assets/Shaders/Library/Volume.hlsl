@@ -37,6 +37,7 @@ struct HitInfo
     float3 hitPointOS;
     float3 normalOS;
     RayTracingMaterial material;
+    bool debug;
 };
 
 float SampleDensity(float3 uv)

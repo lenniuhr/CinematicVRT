@@ -38,7 +38,7 @@ float GetOctreeValueById(int level, int3 octreeId)
     return _OctreeBuffer[index];
 }
 
-// Returns the octree id on the given level for given uvs [0, 1].
+// Returns the octree id on the given level for given UVs [0, 1].
 int3 GetOctreeId(int level, float3 uv)
 {
     int dim = OCTREE_DIM[level];
@@ -124,6 +124,45 @@ void ReduceOctreeLevel(inout int level, inout int3 octreeId, float threshold)
             break;
         }
     }
+}
+
+float RayOctreeT(int level, int3 currentId, float3 position, float3 dirOS, out int3 newId, out float3 newPos)
+{
+    // Get the number of cells in the current octree level
+    int dim = OCTREE_DIM[level];
+    
+    // Get cell min and max in OS from the cell id [0, dim] => [-0.5, 0.5]
+    float3 cellMinOS = BOX_MIN + (currentId / (float) dim);
+    float3 cellMaxOS = BOX_MIN + ((currentId + int3(1, 1, 1)) / (float) dim);
+    
+    float3 cellBorder = 0;
+    cellBorder.x = (dirOS.x > 0) ? cellMaxOS.x : cellMinOS.x;
+    cellBorder.y = (dirOS.y > 0) ? cellMaxOS.y : cellMinOS.y;
+    cellBorder.z = (dirOS.z > 0) ? cellMaxOS.z : cellMinOS.z;
+    
+    float3 invDir = 1 / dirOS;
+    float3 t = (cellBorder - position) * invDir;
+    
+    // TODO control if t is positive
+    if (t.x < t.y && t.x < t.z)
+    {
+        newId = currentId + sign(dirOS.x) * int3(1, 0, 0);
+        newPos = position + dirOS * t.x;
+        return t.x;
+    }
+    else if (t.y < t.x && t.y < t.z)
+    {
+        newId = currentId + sign(dirOS.y) * int3(0, 1, 0);
+        newPos = position + dirOS * t.y;
+        return t.y;
+    }
+    else if (t.z < t.y && t.z < t.x)
+    {
+        newId = currentId + sign(dirOS.z) * int3(0, 0, 1);
+        newPos = position + dirOS * t.z;
+        return t.z;
+    }
+    return t.x;
 }
 
 void RayOctree(int level, int3 currentId, float3 position, float3 dirOS, out int3 newId, out float3 newPos)
