@@ -351,7 +351,7 @@ float3 TracePDF(float3 position, Ray ray, inout uint rngState)
         if (hit.didHit)
         {
             float3 nextFactor;
-            float3 nextDir = SampleDiffuseBruteForce(ray.dirOS, hit.normalOS, hit.material.color, rngState, nextFactor);
+            float3 nextDir = SampleDiffuseImportance(ray.dirOS, hit.normalOS, hit.material.color, rngState, nextFactor);
             
             position = hit.hitPointOS;
             ray.originOS = hit.hitPointOS;
@@ -401,7 +401,8 @@ float3 Trace(float3 position, Ray ray, inout uint rngState)
             
             float pBRDF = a * (1 - exp(-_SD * length(gradient)));
             
-            pBRDF = _SD / 20;//
+            //pBRDF = _SD / 20;//
+            //pBRDF = 1;
             
             if (pBRDF > RandomValue(rngState))
             {
@@ -428,11 +429,11 @@ float3 Trace(float3 position, Ray ray, inout uint rngState)
                 
                 float3 nextFactor;
                 float3 nextDir;
-                if (RandomValue(rngState) > 0.8)
+                if (RandomValue(rngState) > 0.5)
                 {
                     nextDir = SampleSpecularMicrofacetBRDF(normalize(-ray.dirOS), normalize(hit.normalOS), hit.material.color, 0.0, 0.5, 1.0, r, nextFactor);
                     ray.type = 2;
-                    nextFactor *= 5;
+                    nextFactor *= 2;
 
                 }
                 else
@@ -440,7 +441,7 @@ float3 Trace(float3 position, Ray ray, inout uint rngState)
                     nextDir = SampleDiffuseMicrofacetBRDF(normalize(-ray.dirOS), normalize(hit.normalOS), hit.material.color, 0.0, 0.5, 1.0, r, nextFactor);
                     //nextDir = SampleDiffuseImportance(ray.dirOS, hit.normalOS, hit.material.color, rngState, nextFactor);
                     ray.type = 1;
-                    nextFactor *= 1.25;
+                    nextFactor *= 2;
 
                 }
                 position = hit.hitPointOS;
@@ -477,10 +478,23 @@ float3 Trace(float3 position, Ray ray, inout uint rngState)
             
             float4 skyData = SampleEnvironment(dirWS, ray.type);
             
+            if (length(throughput) > 100)
+                throughput *= 100 / length(throughput);
+            
             incomingLight = throughput * skyData.rgb;
             
             if (i > 0)
-                incomingLight *= 1.6;
+                incomingLight *= 1.0;
+            
+            /*
+            if (length(throughput) > 32)
+            {
+                return 1000;
+            }
+            else
+            {
+                return 0;
+            }*/
             
             break;
         }
@@ -504,7 +518,7 @@ float4 DeltaTrackingFragment(Varyings IN) : SV_TARGET
     float3 hitPoint;
     if (RayBoundingBoxOS(ray, hitPoint))
     {
-        float3 color = TracePDF(hitPoint, ray, rngState);
+        float3 color = Trace(hitPoint, ray, rngState);
         
         return float4(color, 1);
     }

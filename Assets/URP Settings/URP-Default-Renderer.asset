@@ -51,7 +51,7 @@ MonoBehaviour:
     SigmaT: 900
     Blend: 0.2
     IncreaseThreshold: 0.5
-    SD: 0
+    SD: 20
     SigmaBlur: 1
 --- !u!114 &-3347501342411450359
 MonoBehaviour:

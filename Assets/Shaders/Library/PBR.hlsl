@@ -174,6 +174,8 @@ float3 SampleDiffuseMicrofacetBRDF(in float3 V, in float3 N, in float3 baseColor
     
     nextFactor = disney * (1.0 - metallicness) * baseColor;// / (PI * 0.5);
     
+    //nextFactor = (1.0 - metallicness) * baseColor;
+    
     //nextFactor = baseColor * PI * cos(theta) * sin(theta);
     //nextFactor = baseColor * sin(theta);
     //nextFactor = baseColor;
