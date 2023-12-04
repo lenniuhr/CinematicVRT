@@ -46,7 +46,14 @@ float SampleDensity(float3 uv)
     {
         return 0;
     }
-    return SAMPLE_TEXTURE3D_LOD(_VolumeTex, sampler_VolumeTex, uv, 0).r;
+    
+    if (distance(uv.xy, float2(0.5, 0.5)) > 0.45)
+    {
+        return 0;
+    }
+    
+    return tex3DTricubic(_VolumeTex, sampler_VolumeTex, uv, float3(512, 512, 460));
+    //return SAMPLE_TEXTURE3D_LOD(_VolumeTex, sampler_VolumeTex, uv, 0).r;
 }
 
 float3 SampleNormal(float3 uv)
@@ -56,10 +63,27 @@ float3 SampleNormal(float3 uv)
         return 0;
     }
     
-    float3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
-    //float3 gradient = tex3DTricubic(_GradientTex, sampler_GradientTex, uv, float3(512, 512, 460)).xyz * 2 - 1;
+    //float3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
+    float3 gradient = tex3DTricubic(_GradientTex, sampler_GradientTex, uv, float3(512, 512, 460)).xyz * 2 - 1;
     
     return normalize(gradient);
+}
+
+float3 CalculateGradient(float3 uv)
+{
+    float3 w = 1.0 / float3(512, 512, 460);
+    
+    float densityRange = 2500 - (-1000);
+    
+    float x1 = SampleDensity(uv + w * float3(1, 0, 0));
+    float x2 = SampleDensity(uv + w * float3(-1, 0, 0));
+    float y1 = SampleDensity(uv + w * float3(0, 1, 0));
+    float y2 = SampleDensity(uv + w * float3(0, -1, 0));
+    float z1 = SampleDensity(uv + w * float3(0, 0, 1));
+    float z2 = SampleDensity(uv + w * float3(0, 0, -1));
+    
+    float3 gradient = float3((x2 - x1) / densityRange, (y2 - y1) / densityRange, (z2 - z1) / densityRange) * 0.5 + 0.5;
+    return gradient;
 }
 
 float4 SampleClassification(float3 uv)

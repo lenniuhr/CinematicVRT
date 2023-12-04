@@ -47,9 +47,12 @@ MonoBehaviour:
     MaxSamples: 10000
     Threshold: 92
     Accumulate: 0
-    Color: {r: 0.8820755, g: 0.9901793, b: 1, a: 1}
-    SigmaT: 50
-    Blend: 0.1
+    Color: {r: 1, g: 0.382335, b: 0.376, a: 1}
+    SigmaT: 900
+    Blend: 0.2
+    IncreaseThreshold: 0.5
+    SD: 0
+    SigmaBlur: 1
 --- !u!114 &-3347501342411450359
 MonoBehaviour:
   m_ObjectHideFlags: 0

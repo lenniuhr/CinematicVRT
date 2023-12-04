@@ -27,7 +27,7 @@ float4 SampleEnvironment(float3 dirWS, int rayType)
     //skyData = SAMPLE_TEXTURECUBE(_IrradianceMap, sampler_IrradianceMap, dirWS);
     //return saturate((dot(dirWS, float3(1, 0, 0)) - 0.5) * 2);
     
-    //return 0;
+    return 1;
     
     
     return skyData;

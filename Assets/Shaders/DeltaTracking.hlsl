@@ -7,11 +7,13 @@
 #include "Assets/Shaders/Library/Environment.hlsl"
 #include "Assets/Shaders/Library/Classification.hlsl"
 #include "Assets/Shaders/Library/Octree.hlsl"
+#include "Assets/Shaders/Library/PBR.hlsl"
 
 TEXTURE2D(_CopyTex);    SAMPLER(sampler_point_clamp);
 TEXTURE2D(_Result);    
 TEXTURE2D(_PrevFrame);
 TEXTURE2D(_CurrentFrame);
+float4 _CurrentFrame_TexelSize;
 
 TEXTURE2D(_TransferTex);  SAMPLER(sampler_TransferTex);
 
@@ -27,6 +29,9 @@ float _Threshold;
 float _SigmaT;
 
 float _Blend;
+
+float _IncreaseThreshold;
+float _DecreaseThreshold;
 
 HitInfo DeltaTraceHomogenous(float3 position, Ray ray, inout uint rngState)
 {
@@ -54,10 +59,18 @@ HitInfo DeltaTraceHomogenous(float3 position, Ray ray, inout uint rngState)
     return hitInfo;
 }
 
+float GetSigmaForOctreeCell(int octreeLevel, int3 octreeId)
+{
+    float octreeValue = GetOctreeValueById(octreeLevel, octreeId);
+    
+    float d = InverseLerp(45, 125, octreeValue);
+
+    return _SigmaT * d;
+}
+
 float DensityToSigma(float density)
 {
-    //return InverseLerp(35, 45, density);
-    return saturate(InverseLerp(0, 150, density));
+    return _SigmaT * InverseLerp(45, 125, density);
 }
 
 void CoordinateSystem(float3 v1, out float3 v2, out float3 v3)
@@ -105,9 +118,30 @@ float4 SampleColor(float density, float3 gradient)
 {
     float density01 = InverseLerp(-1000.0, 2500.0, density);
     
-    density01 += 0.12 * InverseLerp(0, 0.05, gradient);
+    density01 += 0.12 * InverseLerp(0, 0.05, length(gradient));
     
     return SAMPLE_TEXTURE2D_LOD(_1DTransferTex, sampler_1DTransferTex, float2(density01, 0.05), 0);
+}
+
+void IncreaseOctreeLevel(inout int level, inout int3 octreeId, float3 uv, int maxLevel = 7)
+{
+    while (level < maxLevel)
+    {
+        float sigmaTCell = GetSigmaForOctreeCell(level, octreeId);
+        
+        float meanFreePath = 1.0 / sigmaTCell;
+        float cellSize = GetCellSize(level);
+            
+        if (meanFreePath < cellSize * _IncreaseThreshold)
+        {
+            octreeId = GetChildOctreeId(level, octreeId, uv);
+            level++;
+        }
+        else
+        {
+            return;
+        }
+    }
 }
 
 HitInfo DeltaTrackOctree(float3 position, Ray ray, inout uint rngState)
@@ -117,23 +151,46 @@ HitInfo DeltaTrackOctree(float3 position, Ray ray, inout uint rngState)
     float3 uv = GetVolumeCoords(position);
     
     // Initialize octree variables
-    int octreeLevel = 5;
+    int octreeLevel = 0;
     int3 octreeId = GetOctreeId(octreeLevel, uv);
     
     float t = 0;
     float3 dirWS = mul(_VolumeLocalToWorldMatrix, ray.dirOS);
     float factor = 1 / length(dirWS);
-    
 
-    for (int i = 0; i < 500; i++)
+    for (int i = 0; i < 300; i++)
     {
         float3 prevSamplePos = position + ray.dirOS * t;
         float3 prevUv = GetVolumeCoords(prevSamplePos);
         
-        float octreeValue = GetOctreeValueById(octreeLevel, octreeId);
-        float sigmaT = _SigmaT * DensityToSigma(octreeValue);
-        sigmaT = max(sigmaT, 0.01);
-        float step = -log(1.0 - RandomValue(rngState)) / sigmaT;
+        float sigmaTCell = GetSigmaForOctreeCell(octreeLevel, octreeId);
+        sigmaTCell = max(sigmaTCell, 0.001);
+        
+        float meanFreePath = 1.0 / sigmaTCell;
+        float cellSize = GetCellSize(octreeLevel);
+        
+        if (octreeLevel < 7 && meanFreePath < cellSize * _IncreaseThreshold)
+        {
+            octreeId = GetChildOctreeId(octreeLevel, octreeId, prevUv);
+            octreeLevel++;
+        }
+        else if (octreeLevel > 0) // If octree level > 0 and level not increased
+        {
+            float parentCellSize = GetCellSize(octreeLevel - 1);
+            int3 parentId = floor(octreeId / 2);
+            float parentCellSigmaT = GetSigmaForOctreeCell(octreeLevel - 1, parentId);
+            parentCellSigmaT = max(parentCellSigmaT, 0.001);
+            
+            float parentMeanFreePath = 1.0 / parentCellSigmaT;
+            if (parentMeanFreePath > parentCellSize * _IncreaseThreshold)
+            {
+                octreeId = parentId;
+                octreeLevel--;
+                sigmaTCell = parentCellSigmaT;
+            }
+        }
+        
+        float step = -log(1.0 - RandomValue(rngState)) / sigmaTCell;
         
         // Step not further than current cell
         float3 newId;
@@ -148,6 +205,7 @@ HitInfo DeltaTrackOctree(float3 position, Ray ray, inout uint rngState)
             
             if (IsInvalid(octreeLevel, octreeId))
             {
+                hitInfo.material.color = i / 300.0;
                 return hitInfo;
             }
         }
@@ -159,6 +217,7 @@ HitInfo DeltaTrackOctree(float3 position, Ray ray, inout uint rngState)
         
             if (!InVolumeBoundsOS(samplePos))
             {
+                hitInfo.material.color = i / 300.0;
                 return hitInfo;
             }
            
@@ -166,9 +225,19 @@ HitInfo DeltaTrackOctree(float3 position, Ray ray, inout uint rngState)
             float density = SampleDensity(uv);
             float sigma = DensityToSigma(density);
             
-            if (sigma / DensityToSigma(octreeValue) > RandomValue(rngState))
+            float value01 = sigma / sigmaTCell;
+            
+            if (value01 > RandomValue(rngState))
             {
+                float3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
+                
+                //float3 gradient = CalculateGradient(uv) * 2 - 1;
+                
                 hitInfo.didHit = true;
+                hitInfo.hitPointOS = samplePos;
+                hitInfo.normalOS = normalize(gradient);
+                hitInfo.material.color = SampleColor(density, gradient);
+                //hitInfo.material.color = i / 300.0;
                 return hitInfo;
             }
         }
@@ -196,6 +265,7 @@ HitInfo DeltaTraceHeterogenous(float3 position, Ray ray, inout uint rngState)
         
         if (!InVolumeBoundsOS(samplePos))
         {
+            hitInfo.material.color = 1;
             return hitInfo;
         }
            
@@ -203,9 +273,13 @@ HitInfo DeltaTraceHeterogenous(float3 position, Ray ray, inout uint rngState)
         float density = SampleDensity(uv);
         float sigma = DensityToSigma(density);
         
-        if (sigma > RandomValue(rngState))
+        float value01 = sigma / _SigmaT;
+        
+        if (value01 > RandomValue(rngState))
         {
             hitInfo.didHit = true;
+            hitInfo.hitPointOS = samplePos;
+            hitInfo.material.color = i / 1000.0;
             return hitInfo;
         }
     }
@@ -213,113 +287,200 @@ HitInfo DeltaTraceHeterogenous(float3 position, Ray ray, inout uint rngState)
     return hitInfo;
 }
 
-bool TestCollision2(inout uint rngState)
+float3 SampleDiffuseImportance(in float3 V, in float3 N, in float3 baseColor, inout uint rngState, out float3 nextFactor)
 {
-    float t = 0;
-    bool crossedMiddle = false;
+    float theta = asin(sqrt(RandomValue(rngState)));
+    float phi = 2.0 * PI * RandomValue(rngState);
     
-    for (int i = 0; i < 100; i++)
-    {
-        float sigmaT = (!crossedMiddle) ? 0.5 : 2;
-        
-        float step = -log(1.0 - RandomValue(rngState)) / sigmaT;
+    float3 localDiffuseDir = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+    float3 diffuseDir = mul(getNormalSpace(N), localDiffuseDir);
+    
+    nextFactor = baseColor;
 
-        t += step;
-        
-        if (!crossedMiddle && t > 0.5)
-        {
-            t = 0.5;
-            crossedMiddle = true;
-            continue;
-        }
-        
-        if (t > 1)
-        {
-            return 0;
-        }
-        
-        float density = (!crossedMiddle) ? 0.5 : 2;
-        
-        if (density / sigmaT > RandomValue(rngState))
-        {
-            return 1;
-        }
-    }
-    return 0;
+    return normalize(diffuseDir);
 }
 
-float3 TestCollision(inout uint rngState)
+float3 SampleDiffuseBruteForceRiemann(in float3 V, in float3 N, in float3 baseColor, inout uint rngState, out float3 nextFactor)
 {
-    float t = 0;
-    float sigmaT = 2;
+    float theta = 0.5 * PI * RandomValue(rngState);
+    float phi = 2.0 * PI * RandomValue(rngState);
     
-    for (int i = 0; i < 100; i++)
-    {
-        float step = -log(1.0 - RandomValue(rngState)) / sigmaT;
+    float3 localDiffuseDir = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+    float3 diffuseDir = mul(getNormalSpace(N), localDiffuseDir);
+    
+    nextFactor = baseColor * PI * cos(theta) * sin(theta);
 
-        t += step;
+    return normalize(diffuseDir);
+}
+float3 SampleDiffuseBruteForceEqual(in float3 V, in float3 N, in float3 baseColor, inout uint rngState, out float3 nextFactor)
+{
+    float theta = acos(1.0 - RandomValue(rngState));
+    float phi = 2.0 * PI * RandomValue(rngState);
+    
+    float3 localDiffuseDir = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+    float3 diffuseDir = mul(getNormalSpace(N), localDiffuseDir);
+    
+    nextFactor = baseColor * cos(theta);
+
+    return normalize(diffuseDir);
+}
+
+float3 SampleDiffuseBruteForce(in float3 V, in float3 N, in float3 baseColor, inout uint rngState, out float3 nextFactor)
+{
+    
+    float3 nextDir = RandomHemisphereDirection(N, rngState);
+    
+    float cosTheta = dot(N, nextDir);
+    
+    float brdf = cosTheta / PI;
+    
+    nextFactor = baseColor * brdf * 2 * PI;
+
+    return nextDir;
+}
+
+float3 TracePDF(float3 position, Ray ray, inout uint rngState)
+{
+    float3 throughput = 1;
+    float3 incomingLight = 0;
+    
+    for (int i = 0; i <= 10; i++)
+    {
+        HitInfo hit = DeltaTrackOctree(position, ray, rngState);
         
-        if (t > 1)
+        if (hit.didHit)
         {
-            return 0;
+            float3 nextFactor;
+            float3 nextDir = SampleDiffuseBruteForce(ray.dirOS, hit.normalOS, hit.material.color, rngState, nextFactor);
+            
+            position = hit.hitPointOS;
+            ray.originOS = hit.hitPointOS;
+            ray.dirOS = nextDir;
+            ray.type = 1;
+            throughput *= nextFactor;
         }
-        
-        float density = (t < 0.5) ? 0.5 : 2;
-        
-        if (density / sigmaT > RandomValue(rngState))
+        else
         {
-            return 1;
+            float3 dirWS = normalize(mul((float3x3) _VolumeLocalToWorldMatrix, ray.dirOS));
+            float4 skyData = SampleEnvironment(dirWS, ray.type);
+            incomingLight = throughput * skyData.rgb;
+            break;
         }
     }
-    return 0;
+    return incomingLight;
 }
+
+float _SD;
 
 float3 Trace(float3 position, Ray ray, inout uint rngState)
 {
-    float3 color = 1;
+    float3 throughput = 1;
     float3 incomingLight = 0;
     
-    for (int i = 0; i <= 20; i++)
+    for (int i = 0; i <= 10; i++)
     {
         HitInfo hit = DeltaTrackOctree(position, ray, rngState);
-        HitInfo hit2 = DeltaTraceHeterogenous(position, ray, rngState);
-        
-        if (hit.didHit && !hit2.didHit)
-        {
-            return 1;
-        }
-        if (!hit.didHit && hit2.didHit)
-        {
-            return 0;
-        }
-        return 0.5;
+        //HitInfo hit = DeltaTraceHeterogenous(position, ray, rngState);
         
         if (hit.debug)
         {
             return float3(1, 0, 1);
         }
         
+        //return hit.material.color;
+        
         if (hit.didHit)
         {
-            return 1;
+            // Calculate surface/volume probability
+            float3 uv = GetVolumeCoords(hit.hitPointOS);
+            float density = SampleDensity(uv);
+            float sigma = DensityToSigma(density);
+            float a = sigma / _SigmaT;
             
-            float3 nextDir = SampleDirection(ray.dirOS, _Blend, rngState);
+            float3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
             
-            position = hit.hitPointOS;
-            ray.originOS = hit.hitPointOS;
-            ray.dirOS = nextDir;
-            ray.type = 1;
-            color *= _Color; //hit.material.color;
+            float pBRDF = a * (1 - exp(-_SD * length(gradient)));
+            
+            pBRDF = _SD / 20;//
+            
+            if (pBRDF > RandomValue(rngState))
+            {
+                /*
+                // uniform sampling of hemisphere
+                float theta = asin(sqrt(RandomValue(rngState)));
+                float phi = 2.0 * PI * RandomValue(rngState);
+  
+                // sampled indirect diffuse direction in normal space
+                float3 localDiffuseDir = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+                float3 diffuseDir = mul(getNormalSpace(hit.normalOS), localDiffuseDir);
+                
+                float3 nextFactor = MicrofacetBRDF(diffuseDir, ray.dirOS, hit.normalOS, hit.material.color, 0.0, 0.5, 0.15);
+                
+                position = hit.hitPointOS;
+                ray.originOS = hit.hitPointOS;
+                ray.dirOS = diffuseDir;
+                throughput *= nextFactor;
+                */
+                
+                // Surface scattering
+                float3 r = float3(RandomValue(rngState), RandomValue(rngState), RandomValue(rngState));
+                //float3 r = float3(Halton(2, _FrameID), Halton(3, _FrameID), Halton(4, _FrameID));
+                
+                float3 nextFactor;
+                float3 nextDir;
+                if (RandomValue(rngState) > 0.8)
+                {
+                    nextDir = SampleSpecularMicrofacetBRDF(normalize(-ray.dirOS), normalize(hit.normalOS), hit.material.color, 0.0, 0.5, 1.0, r, nextFactor);
+                    ray.type = 2;
+                    nextFactor *= 5;
+
+                }
+                else
+                {
+                    nextDir = SampleDiffuseMicrofacetBRDF(normalize(-ray.dirOS), normalize(hit.normalOS), hit.material.color, 0.0, 0.5, 1.0, r, nextFactor);
+                    //nextDir = SampleDiffuseImportance(ray.dirOS, hit.normalOS, hit.material.color, rngState, nextFactor);
+                    ray.type = 1;
+                    nextFactor *= 1.25;
+
+                }
+                position = hit.hitPointOS;
+                ray.originOS = hit.hitPointOS;
+                ray.dirOS = nextDir;
+                throughput *= nextFactor;
+            }
+            else
+            {
+                // Volumetric scattering
+                float3 nextDir = SampleDirection(ray.dirOS, _Blend, rngState);
+            
+                position = hit.hitPointOS;
+                ray.originOS = hit.hitPointOS;
+                ray.dirOS = nextDir;
+                ray.type = 1;
+                throughput *= hit.material.color;
+            }
+            
+            /*
+            if (i > 2)
+            {
+                float m = max(throughput.r, max(throughput.g, throughput.b));
+                
+                if (RandomValue(rngState) < m)
+                    throughput /= m;
+                else
+                    break;
+            }*/
         }
         else
         {
-            return 0;
-            
             float3 dirWS = normalize(mul((float3x3) _VolumeLocalToWorldMatrix, ray.dirOS));
             
             float4 skyData = SampleEnvironment(dirWS, ray.type);
             
-            incomingLight = color * skyData.rgb;
+            incomingLight = throughput * skyData.rgb;
+            
+            if (i > 0)
+                incomingLight *= 1.6;
             
             break;
         }
@@ -327,8 +488,6 @@ float3 Trace(float3 position, Ray ray, inout uint rngState)
     
     return incomingLight;
 }
-
-int _TestInt;
 
 float4 DeltaTrackingFragment(Varyings IN) : SV_TARGET
 {
@@ -345,7 +504,7 @@ float4 DeltaTrackingFragment(Varyings IN) : SV_TARGET
     float3 hitPoint;
     if (RayBoundingBoxOS(ray, hitPoint))
     {
-        float3 color = Trace(hitPoint, ray, rngState);
+        float3 color = TracePDF(hitPoint, ray, rngState);
         
         return float4(color, 1);
     }
@@ -363,8 +522,6 @@ float4 AccumulateFragment(Varyings IN) : SV_Target
     float4 prevColor = SAMPLE_TEXTURE2D(_PrevFrame, sampler_point_clamp, IN.uv);
     
     float weight = 1.0 / (_FrameID + 1.0);
-    
-    //weight = _Blend;
     
     float4 accumulatedColor = prevColor * (1.0 - weight) + color * weight;
     

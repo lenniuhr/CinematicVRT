@@ -4,6 +4,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Assets/Shaders/Library/RayTracingUtils.hlsl"
 #include "Assets/Shaders/Library/DefaultInput.hlsl"
+#include "Assets/Shaders/Library/Environment.hlsl"
 
 TEXTURE2D(_CopyTex);    SAMPLER(sampler_point_clamp);
 TEXTURE2D(_ResultTex);    
@@ -12,7 +13,7 @@ TEXTURE2D(_PrevFrame);
 float3 _ViewParams;
 float4x4 _CamLocalToWorldMatrix;
 
-int _FrameID;
+int _Frame;
 
 int _MaxBounces;
 
@@ -162,21 +163,30 @@ HitInfo CalculateRayCollision(Ray ray)
     return closestHit;
 }
 
+float3 RandomHemisphereDirection(float3 normal, inout uint rngState)
+{
+    float3 dir = RandomDirection(rngState);
+    return dir * sign(dot(normal, dir));
+}
+
 half3 Trace(Ray ray, inout uint rngState)
 {
     float3 color = 1;
     float3 incomingLight = 0;
     
+    [loop]
     for (int i = 0; i <= _MaxBounces; i++)
     {
         HitInfo hit = CalculateRayCollision(ray);
         if (hit.didHit)
         {
             ray.origin = hit.hitPoint;
-            ray.dir = normalize(hit.normal + RandomDirection(rngState));
+            //ray.dir = normalize(hit.normal + RandomDirection(rngState));
+            ray.dir = RandomHemisphereDirection(hit.normal, rngState);
+            
             
             incomingLight += color * hit.material.emissionColor;
-            color *= hit.material.color;
+            color *= hit.material.color * dot(hit.normal, ray.dir);
             
             // Russian Roulette
             /*float p = max(color.r, max(color.g, color.b));
@@ -188,6 +198,8 @@ half3 Trace(Ray ray, inout uint rngState)
         }
         else
         {
+            incomingLight = color * SampleEnvironment(ray.dir, 0);
+            
             break;
         }
     }
@@ -229,9 +241,9 @@ float2 hammersley(uint n, uint N)
 float4 RayTracingFragment(Varyings IN) : SV_TARGET
 {
     // compute random pixel offset
-    float2 pixelOffset = hammersley(uint(_FrameID), uint(1000)) / _ScreenParams.xy;
+    float2 pixelOffset = hammersley(uint(_Frame), uint(1000)) / _ScreenParams.xy;
     
-    pixelOffset = float2(Halton(2, _FrameID) - 0.5, Halton(3, _FrameID) - 0.5) / _ScreenParams.xy;
+    pixelOffset = float2(Halton(2, _Frame) - 0.5, Halton(3, _Frame) - 0.5) / _ScreenParams.xy;
     
     //return -Halton(2, _FrameID);
     
@@ -239,7 +251,7 @@ float4 RayTracingFragment(Varyings IN) : SV_TARGET
     uint2 numPixels = _ScreenParams.xy;
     uint2 pixelCoord = IN.uv * numPixels;
     uint pixelIndex = pixelCoord.y * numPixels.x + pixelCoord.x;
-    uint rngState = pixelIndex + _FrameID * 719393;
+    uint rngState = pixelIndex + _Frame * 719393;
     
     float3 viewPointLocal = float3(IN.uv - 0.5 + pixelOffset, 1) * _ViewParams;
 	float3 viewPoint = mul(_CamLocalToWorldMatrix, float4(viewPointLocal, 1)).xyz;
@@ -263,7 +275,7 @@ float4 AccumulateFragment(Varyings IN) : SV_Target
     float4 color = SAMPLE_TEXTURE2D(_ResultTex, sampler_point_clamp, IN.uv);
     float4 prevColor = SAMPLE_TEXTURE2D(_PrevFrame, sampler_point_clamp, IN.uv);
     
-    float weight = 1.0 / (_FrameID + 1.0);
+    float weight = 1.0 / (_Frame + 1.0);
     
     float4 accumulatedColor = prevColor * (1.0 - weight) + color * weight;
 				

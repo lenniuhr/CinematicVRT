@@ -42,6 +42,9 @@ public class RenderFeatureEditor : Editor
                 rf.deltaTrackingettings.Accumulate = EditorGUILayout.Toggle("Accumulate", rf.deltaTrackingettings.Accumulate);
                 rf.deltaTrackingettings.Color = EditorGUILayout.ColorField("Color", rf.deltaTrackingettings.Color);
                 rf.deltaTrackingettings.Blend = EditorGUILayout.Slider("Blend", rf.deltaTrackingettings.Blend, -1, 1);
+                rf.deltaTrackingettings.IncreaseThreshold = EditorGUILayout.Slider("Increase Threshold", rf.deltaTrackingettings.IncreaseThreshold, 0, 1);
+                rf.deltaTrackingettings.SD = EditorGUILayout.Slider("SD", rf.deltaTrackingettings.SD, 0, 20);
+                rf.deltaTrackingettings.SigmaBlur = EditorGUILayout.Slider("Sigma Blur", rf.deltaTrackingettings.SigmaBlur, 0.01f, 10);
                 break;
         }
 

@@ -2,7 +2,6 @@ Shader "Hidden/RayTracing"
 {
     Properties
     {
-        _FrameID("Frame ID", Float) = 0
         _MaxBounces("Max Bounces", Float) = 5
     }
     SubShader

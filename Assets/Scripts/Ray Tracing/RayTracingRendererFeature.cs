@@ -104,8 +104,6 @@ public class RayTracingRendererFeature : ScriptableRendererFeature
             // Send data to shader
             material.SetVector("_ViewParams", new Vector3(planeWidth, planeHeight, focusDistance));
             material.SetMatrix("_CamLocalToWorldMatrix", cam.transform.localToWorldMatrix);
-
-            material.SetInt("_FrameID", frameID);
         }
 
         void CreateSpheres()
@@ -186,6 +184,8 @@ public class RayTracingRendererFeature : ScriptableRendererFeature
             using (new ProfilingScope(cmd, new ProfilingSampler("Ray Tracing Pass")))
             {
                 cmd.BeginSample("Ray Tracing");
+
+                cmd.SetGlobalInt("_Frame", frameID);
 
                 bool isSceneCam = Camera.current && Camera.current.name == "SceneCamera";
 

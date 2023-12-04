@@ -126,6 +126,11 @@ void ReduceOctreeLevel(inout int level, inout int3 octreeId, float threshold)
     }
 }
 
+float GetCellSize(int level)
+{
+    return 1.0 / OCTREE_DIM[level];
+}
+
 float RayOctreeT(int level, int3 currentId, float3 position, float3 dirOS, out int3 newId, out float3 newPos)
 {
     // Get the number of cells in the current octree level

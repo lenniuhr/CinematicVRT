@@ -28,8 +28,8 @@ float RandomValue(inout uint state)
 // Random value in normal distribution (with mean=0 and sd=1)
 float RandomValueNormalDistribution(inout uint state)
 {
-				// Thanks to https://stackoverflow.com/a/6178290
-    float theta = 2 * 3.1415926 * RandomValue(state);
+	// Thanks to https://stackoverflow.com/a/6178290
+    float theta = 2 * PI * RandomValue(state);
     float rho = sqrt(-2 * log(RandomValue(state)));
     return rho * cos(theta);
 }
@@ -37,11 +37,17 @@ float RandomValueNormalDistribution(inout uint state)
 // Calculate a random direction
 float3 RandomDirection(inout uint state)
 {
-				// Thanks to https://math.stackexchange.com/a/1585996
+	// Thanks to https://math.stackexchange.com/a/1585996
     float x = RandomValueNormalDistribution(state);
     float y = RandomValueNormalDistribution(state);
     float z = RandomValueNormalDistribution(state);
     return normalize(float3(x, y, z));
+}
+
+float3 RandomHemisphereDirection(float3 normal, inout uint rngState)
+{
+    float3 dir = RandomDirection(rngState);
+    return dir * sign(dot(normal, dir));
 }
 
 float Halton(uint base, uint index)

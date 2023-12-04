@@ -2,7 +2,6 @@ using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
-using static TMPro.SpriteAssetUtilities.TexturePacker_JsonArray;
 using static UnityEngine.Mathf;
 
 public class RenderModeRendererFeature : ScriptableRendererFeature
@@ -42,6 +41,9 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
         public Color Color = Color.white;
         public float SigmaT = 1f;
         public float Blend = 0.0f;
+        public float IncreaseThreshold = 0.5f;
+        public float SD = 1;
+        public float SigmaBlur = 1f;
     }
 
     public RenderMode renderMode = RenderMode.VOLUME;
@@ -416,6 +418,9 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             material.SetFloat("_SigmaT", settings.SigmaT);
             material.SetColor("_Color", settings.Color.linear);
             material.SetFloat("_Blend", settings.Blend);
+            material.SetFloat("_IncreaseThreshold", settings.IncreaseThreshold);
+            material.SetFloat("_SD", settings.SD);
+            material.SetFloat("_SigmaBlur", settings.SigmaBlur);
 
             accumulate = settings.Accumulate;
             samplesPerPixel = settings.SamplesPerPixel;
