@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 [ExecuteInEditMode]
@@ -6,52 +5,72 @@ public class TransferFunctionManager : MonoBehaviour
 {
     public TransferFunction transferFunction;
 
-    public Gradient gradient = null;
+    private const int WIDTH = 2048;
 
-    private const int WIDTH = 1500;
+    private bool hasChanged = false;
+
+    public bool HasChanged()
+    {
+        if (hasChanged)
+        {
+            hasChanged = false;
+            return true;
+        }
+        return false;
+    }
 
     private void OnEnable()
     {
-        GenerateTransferTex();
+        UpdateTransferTex();
+    }
+
+    private void Update()
+    {
+        if(transferFunction == null)
+        {
+            return;
+        }
+
+        if(transferFunction.HasChanged())
+        {
+            UpdateTransferTex();
+        }
     }
 
     private void OnValidate()
     {
         if (!enabled) return;
 
-        //GenerateTransferTex();
-
-        Update1DTransferTex();
+        UpdateTransferTex();
     }
 
-    public void GenerateTransferTex()
+    private void UpdateTransferTex()
     {
-        //TransferFunction transferFunction = ScriptableObject.CreateInstance<TransferFunction>();
+        if (transferFunction == null)
+        {
+            return;
+        }
 
-        if (transferFunction == null) return;
+        Texture2D albedoTexture = GenerateTexture(transferFunction.Albedo);
+        Texture2D roughnessTexture = GenerateTexture(transferFunction.Roughness);
+        Texture2D alphaTexture = GenerateTexture(transferFunction.Alpha);
 
-        Texture2D texture = transferFunction.GenerateTextureOnGPU();
+        Shader.SetGlobalTexture("_AlbedoTex", albedoTexture);
+        Shader.SetGlobalTexture("_RoughnessTex", roughnessTexture);
+        Shader.SetGlobalTexture("_AlphaTex", alphaTexture);
 
-        Shader.SetGlobalTexture("_TransferTex", texture);
+        Shader.SetGlobalFloat("_GradientShift", transferFunction.GradientShift);
+        Shader.SetGlobalFloat("_GradientLimit", transferFunction.GradientLimit);
 
-        Debug.Log($"Generated texture with dimension [{texture.width}, {texture.height}]");
+        Debug.Log("Updated Transfer Texture");
+        hasChanged = true;
     }
 
-    public TransferFunction GetTransferFunction()
+    private Texture2D GenerateTexture(Gradient gradient)
     {
-        TransferFunction transferFunction = ScriptableObject.CreateInstance<TransferFunction>();
-        return transferFunction;
-    }
-
-    private void Update1DTransferTex()
-    {
-        if (gradient == null) return;
-
-        Debug.Log("Update texture");
-
         Texture2D texture = new Texture2D(WIDTH, 1, TextureFormat.ARGB32, false);
-        texture.wrapMode= TextureWrapMode.Clamp;
-        texture.filterMode= FilterMode.Bilinear;
+        texture.wrapMode = TextureWrapMode.Clamp;
+        texture.filterMode = FilterMode.Bilinear;
 
         for (int i = 0; i < WIDTH; ++i)
         {
@@ -60,6 +79,6 @@ public class TransferFunctionManager : MonoBehaviour
         }
         texture.Apply(false);
 
-        Shader.SetGlobalTexture("_1DTransferTex", texture);
+        return texture;
     }
 }

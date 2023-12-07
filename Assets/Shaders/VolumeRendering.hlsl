@@ -47,18 +47,14 @@ HitInfo RaymarchCell(int level, int3 currentId, float3 position, float3 dirOS)
         
         float3 uv = GetVolumeCoords(stepPos);
         
-        float4 classification = SampleClassification(uv);
-        float maxValue = max(max(max(classification.r, classification.g), classification.b), classification.a);
+        float density = SampleDensity(uv);
                     
-        if (maxValue > _Threshold) // Surface hit
+        if (density > _Threshold) // Surface hit
         {
             hitInfo.didHit = true;
             hitInfo.hitPointOS = position;
             hitInfo.normalOS = SampleNormal(uv);
-            //hitInfo.material.color = GetClassColor(classification);
-            //hitInfo.material.color = SampleNormal(uv);
-            
-            hitInfo.material = GetMaterial(classification);
+            hitInfo.material.color = 0.5;
             
             return hitInfo;
         }
@@ -139,23 +135,16 @@ float4 RayMarch(float3 position, Ray ray)
         
         float3 uv = GetVolumeCoords(position);
         
-        float4 value = SampleClassification(uv);
+        float density = SampleDensity(uv);
         
-        //float4 value = tex3DTricubic(_ClassifyTex, sampler_ClassifyTex, uv, float3(512, 512, 460));
-        
-        float maxVal = max(max(max(value.r, value.g), value.b), value.a);
-        
-        if (maxVal > _Threshold)
+        if (density > _Threshold)
         {
             half3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
             
             float3 normalWS = normalize(mul((float3x3) _VolumeLocalToWorldMatrix, gradient));
             
-            float4 color = GetClassColor(value);
-            
             float3 gi = SampleSH(normalWS);
-            color.rgb = PBRLighting(color.rgb, 0, _Metallicness, -ray.dirWS, normalWS, gi);
-            output.rgb = color;
+            output.rgb = PBRLighting(0.5, 0, _Metallicness, -ray.dirWS, normalWS, gi);
             output.a = 1;
             
             break;
@@ -167,7 +156,7 @@ float4 RayMarch(float3 position, Ray ray)
 
 float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
 {
-    Ray ray = GetRay(IN.uv);
+    Ray ray = GetRay(IN.uv, _VolumeWorldToLocalMatrix);
     
     float3 hitPoint;
     if (RayBoundingBoxOS(ray, hitPoint))

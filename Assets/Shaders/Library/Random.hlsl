@@ -50,6 +50,13 @@ float3 RandomHemisphereDirection(float3 normal, inout uint rngState)
     return dir * sign(dot(normal, dir));
 }
 
+float2 RandomPointInCircle(inout uint rngState)
+{
+    float angle = 2 * PI * RandomValue(rngState);
+    float2 pointInCircle = float2(cos(angle), sin(angle));
+    return pointInCircle * sqrt(RandomValue(rngState));
+}
+
 float Halton(uint base, uint index)
 {
     float result = 0;

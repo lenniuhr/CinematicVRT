@@ -9,7 +9,7 @@
 #include "Assets/Shaders/Library/Environment.hlsl"
 #include "Assets/Shaders/Library/PBR.hlsl"
 
-TEXTURE2D(_CopyTex);    SAMPLER(sampler_point_clamp);
+TEXTURE2D(_CopyTex);
 TEXTURE2D(_ResultTex);    
 TEXTURE2D(_PrevFrame);
 TEXTURE2D(_CurrentFrame);
@@ -40,19 +40,15 @@ HitInfo RaymarchCell(int level, int3 currentId, float3 position, float3 dirOS)
         
         float3 uv = GetVolumeCoords(stepPos);
         
-        float4 classification = SampleClassification(uv);
-        float maxValue = max(max(max(classification.r, classification.g), classification.b), classification.a);
+        float density = SampleDensity(uv);
                     
-        if (maxValue > _Threshold) // Surface hit
+        if (density > _Threshold) // Surface hit
         {
             hitInfo.didHit = true;
             hitInfo.hitPointOS = stepPos - step;
             uv = GetVolumeCoords(hitInfo.hitPointOS);
             hitInfo.normalOS = SampleNormal(uv);
-            
-            //hitInfo.material.color = GetClassColor(classification);
-            //hitInfo.material.color = (float) i / 10.0;
-            hitInfo.material = GetMaterial(classification);
+            hitInfo.material.color = (float) i / 10.0;
             
             return hitInfo;
         }
@@ -159,7 +155,6 @@ HitInfo RayMarchVolumeCollision(float3 position, Ray ray, inout uint rngState)
            
         float3 uv = GetVolumeCoords(position);
         float density = SampleDensity(uv);
-        float4 classification = SampleClassification(uv);
         
         if (density > _Threshold)
         {
@@ -170,7 +165,7 @@ HitInfo RayMarchVolumeCollision(float3 position, Ray ray, inout uint rngState)
             hitInfo.didHit = true;
             hitInfo.hitPointOS = position - ray.dirOS * _StepSize;
             hitInfo.normalOS = normalOS;
-            hitInfo.material.color = GetClassColor(classification);;
+            hitInfo.material.color = 0.5;
                 
             return hitInfo;
         }
@@ -207,9 +202,7 @@ HitInfo RayMarchInsideVolume(float3 position, Ray ray, float radius, inout uint 
         float3 uv = GetVolumeCoords(position);
         float density = SampleDensity(uv);
         
-        float4 classification = SampleClassification(uv);
-        
-        if (length(classification) < _Threshold)
+        if (density > _Threshold)
         {
             float3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
                 
@@ -218,7 +211,7 @@ HitInfo RayMarchInsideVolume(float3 position, Ray ray, float radius, inout uint 
             hitInfo.didHit = true;
             hitInfo.hitPointOS = position - ray.dirOS * _StepSize;
             hitInfo.normalOS = normalOS;
-            hitInfo.material.color = GetClassColor(classification);
+            hitInfo.material.color = 0.5;
                 
             hitInfo.hitPointOS = lerp(startPos, hitInfo.hitPointOS, 0.5);
             
@@ -629,7 +622,7 @@ float4 RaytraceFragment(Varyings IN) : SV_TARGET
     uint pixelIndex = pixelCoord.y * numPixels.x + pixelCoord.x;
     uint rngState = pixelIndex + _FrameID * 719393;
     
-    Ray ray = GetRay(IN.uv, pixelOffset);
+    Ray ray = GetRay(IN.uv, _VolumeWorldToLocalMatrix, pixelOffset);
     
     float3 hitPoint;
     if (RayBoundingBoxOS(ray, hitPoint))

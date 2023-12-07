@@ -4,15 +4,10 @@ using UnityEngine.Rendering;
 [ExecuteAlways]
 public class EnvironmentManager : MonoBehaviour
 {
-
-    public Texture EnvironmentMap4K;
-    public Texture EnvironmentMap1K;
-
     public Cubemap EnvironmentMap;
     public Cubemap IrradianceMap;
     public Cubemap ReflectionMap;
-
-    public ComputeShader computeShader;
+    public bool ShowEnvironment = true;
 
     private void OnEnable()
     {
@@ -29,6 +24,7 @@ public class EnvironmentManager : MonoBehaviour
         Shader.SetGlobalTexture("_EnvironmentMap", EnvironmentMap);
         Shader.SetGlobalTexture("_IrradianceMap", IrradianceMap);
         Shader.SetGlobalTexture("_ReflectionMap", ReflectionMap);
+        Shader.SetGlobalInteger("_ShowEnvironment", ShowEnvironment ? 1 : 0);
     }
 
     public void GenerateIrradianceTexture()

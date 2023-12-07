@@ -7,13 +7,22 @@ TEXTURECUBE(_EnvironmentMap);       SAMPLER(sampler_EnvironmentMap);
 TEXTURECUBE(_IrradianceMap);        SAMPLER(sampler_IrradianceMap);
 TEXTURECUBE(_ReflectionMap);        SAMPLER(sampler_ReflectionMap);
 
+bool _ShowEnvironment;
+
 float4 SampleEnvironment(float3 dirWS, int rayType)
 {
     float4 skyData;
     if (rayType == 0) // From camera
     {
-        skyData = SAMPLE_TEXTURECUBE(_EnvironmentMap, sampler_EnvironmentMap, dirWS);
-        //skyData = 0;
+        skyData = SAMPLE_TEXTURECUBE_LOD(_EnvironmentMap, sampler_EnvironmentMap, dirWS, 0);
+        
+        // Clamp to prevent fireflys when a ray randomly passes through the volume
+        skyData = clamp(skyData, 0, 2);
+
+        if (!_ShowEnvironment)
+        {
+            skyData = 0;
+        }
     }
     else if (rayType == 1) // Diffuse bounce
     {
@@ -23,13 +32,6 @@ float4 SampleEnvironment(float3 dirWS, int rayType)
     {
         skyData = SAMPLE_TEXTURECUBE(_ReflectionMap, sampler_ReflectionMap, dirWS);
     }
-    
-    //skyData = SAMPLE_TEXTURECUBE(_IrradianceMap, sampler_IrradianceMap, dirWS);
-    //return saturate((dot(dirWS, float3(1, 0, 0)) - 0.5) * 2);
-    
-    //return 1;
-    
-    
     return skyData;
 }
 

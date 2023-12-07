@@ -8,7 +8,7 @@ public class TransferFunctionEditorWindow : EditorWindow
 {
     private Texture2D texture;
 
-    private TransferFunction transferFunction;
+    private TransferFunction2D transferFunction;
 
     private Color UNITY_BLUE = new Color(58 / 255.0f, 115 / 255.0f, 175 / 255.0f);
 
@@ -16,7 +16,7 @@ public class TransferFunctionEditorWindow : EditorWindow
 
     private string tfName;
 
-    public async void Init(TransferFunction transferFunction)
+    public async void Init(TransferFunction2D transferFunction)
     {
         textureWidth = position.width - 2 * MARGIN;
         textureHeight = textureWidth / 2;

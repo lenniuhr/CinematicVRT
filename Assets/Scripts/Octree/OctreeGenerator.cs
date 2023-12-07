@@ -20,7 +20,10 @@ public class OctreeGenerator : MonoBehaviour
     {
         m_VolumeBoundingBox = GetComponent<VolumeBoundingBox>();
 
-        if (m_VolumeBoundingBox.GetDataTexture() == null) return;
+        if (m_VolumeBoundingBox.GetDataTexture() == null)
+        {
+            return;
+        }
 
         Initialize();
 
@@ -48,20 +51,13 @@ public class OctreeGenerator : MonoBehaviour
 
     private void Initialize()
     {
+        if (!m_VolumeBoundingBox.IsInitialized()) return;
+
         m_BaseKernel = computeShader.FindKernel("GenerateBase");
         m_MainKernel = computeShader.FindKernel("GenerateLevel");
 
-        Texture3D dataTexture = m_VolumeBoundingBox.GetDataTexture();
-
-        if (dataTexture == null) return;
-
-        computeShader.SetTexture(m_BaseKernel, "_VolumeTex", dataTexture);
-        computeShader.SetVector("_VolumeTexelSize", new Vector3(1.0f / dataTexture.width, 1.0f / dataTexture.height, 1.0f / dataTexture.depth));
-
-        computeShader.SetTexture(m_BaseKernel, "_DensityTex", dataTexture);
-        computeShader.SetVector("_Dimension", new Vector3(dataTexture.width, dataTexture.height, dataTexture.depth));
-
-        computeShader.SetTextureFromGlobal(m_BaseKernel, "_ClassifyTex", "_ClassifyTex");
+        computeShader.SetTextureFromGlobal(m_BaseKernel, "_VolumeTex", "_VolumeTex");
+        //computeShader.SetVector("_VolumeTexelSize", new Vector3(1.0f / dataTexture.width, 1.0f / dataTexture.height, 1.0f / dataTexture.depth));
 
         m_Initialized = true;
 

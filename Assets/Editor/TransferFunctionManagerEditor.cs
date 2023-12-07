@@ -14,13 +14,8 @@ public class TransferFunctionManagerEditor : Editor
         {
             TransferFunctionEditorWindow window = (TransferFunctionEditorWindow)EditorWindow.GetWindow(typeof(TransferFunctionEditorWindow), false, "Edit Transfer Function");
 
-            // Create transfer function if missing
-            if (manager.transferFunction == null)
-            {
-                manager.transferFunction = ScriptableObject.CreateInstance<TransferFunction>();
-                manager.transferFunction.name = "New Transfer Function"; //
-            }
-            window.Init(manager.transferFunction);
+            TransferFunction2D transferFunction = ScriptableObject.CreateInstance<TransferFunction2D>();
+            window.Init(transferFunction);
         }
     }
 }

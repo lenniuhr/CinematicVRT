@@ -6,6 +6,7 @@ struct RayTracingMaterial
     float3 color;
     float metallicness;
     float roughness;
+    float alpha;
     float reflectance;
 };
 

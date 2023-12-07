@@ -32,7 +32,7 @@ public class ResizableBox
     public FalloffType falloffType;
     public float falloffStrength;
 
-    private TransferFunction transferFunction;
+    private TransferFunction2D transferFunction;
     public int index;
     private Texture2D circle;
 
@@ -68,7 +68,7 @@ public class ResizableBox
     private Vector2 clickOffsetBottomLeft;
     private Vector2 clickOffsetBottomRight;
 
-    public ResizableBox(TransferFunction transferFunction, int index, Texture2D circle, float textureWidth, float textureHeight, float margin)
+    public ResizableBox(TransferFunction2D transferFunction, int index, Texture2D circle, float textureWidth, float textureHeight, float margin)
     {
         this.transferFunction = transferFunction;
         this.index = index;
@@ -88,7 +88,7 @@ public class ResizableBox
 
     public void Rescale()
     {
-        TransferFunction.Box tfBox = transferFunction.GetBoxById(index);
+        TransferFunction2D.Box tfBox = transferFunction.GetBoxById(index);
         color = tfBox.color.gamma;
 
         topLeft = TextureToEditorCoord(tfBox.top.x1, tfBox.top.y);
@@ -419,16 +419,16 @@ public class ResizableBox
         Vector2 bottomLeftTex = EditorToTextureCoord(bottomLeft);
         Vector2 bottomRightTex = EditorToTextureCoord(bottomRight);
 
-        TransferFunction.Box tfBox = new TransferFunction.Box();
+        TransferFunction2D.Box tfBox = new TransferFunction2D.Box();
 
         tfBox.color = color.linear;
 
-        tfBox.top = new TransferFunction.Line();
+        tfBox.top = new TransferFunction2D.Line();
         tfBox.top.x1 = topLeftTex.x;
         tfBox.top.x2 = topRightTex.x;
         tfBox.top.y = topLeftTex.y;
 
-        tfBox.bottom = new TransferFunction.Line();
+        tfBox.bottom = new TransferFunction2D.Line();
         tfBox.bottom.x1 = bottomLeftTex.x;
         tfBox.bottom.x2 = bottomRightTex.x;
         tfBox.bottom.y = bottomLeftTex.y;

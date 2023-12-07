@@ -4,6 +4,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Assets/Shaders/Library/OctreeUtils.hlsl"
 #include "Assets/Shaders/Library/Volume.hlsl"
+#include "Assets/Shaders/Library/RayUtils.hlsl"
 
 StructuredBuffer<float> _OctreeBuffer;
 

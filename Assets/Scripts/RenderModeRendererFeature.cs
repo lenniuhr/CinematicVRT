@@ -43,7 +43,8 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
         public float Blend = 0.0f;
         public float IncreaseThreshold = 0.5f;
         public float SD = 1;
-        public float SigmaBlur = 1f;
+        public float DefocusStrength = 0f;
+        public float FocusDistance = 1f;
     }
 
     public RenderMode renderMode = RenderMode.VOLUME;
@@ -403,6 +404,9 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
         int samplesPerPixel = 1;
         int maxSamples = 1;
 
+        float focusDistance;
+
+
         enum Pass
         {
             Accumulate,
@@ -420,11 +424,12 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             material.SetFloat("_Blend", settings.Blend);
             material.SetFloat("_IncreaseThreshold", settings.IncreaseThreshold);
             material.SetFloat("_SD", settings.SD);
-            material.SetFloat("_SigmaBlur", settings.SigmaBlur);
+            material.SetFloat("_DivergeStrength", settings.DefocusStrength);
 
             accumulate = settings.Accumulate;
             samplesPerPixel = settings.SamplesPerPixel;
             maxSamples = settings.MaxSamples;
+            focusDistance = settings.FocusDistance;
             frameID = 0;
         }
 
@@ -448,13 +453,27 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             currentFrame.Init("_CurrentFrame");
             prevFrame.Init("_PrevFrame");
 
+            if(FindObjectOfType<TransferFunctionManager>().HasChanged())
+            {
+                frameID = 0;
+            }
+
+            if(renderingData.cameraData.camera.transform.hasChanged)
+            {
+                renderingData.cameraData.camera.transform.hasChanged = false;
+                frameID = 0;
+            }
+
             cmd.GetTemporaryRT(currentFrame.id, desc, FilterMode.Point);
             cmd.GetTemporaryRT(prevFrame.id, desc, FilterMode.Point);
         }
         
         public void CleanUp()
         {
-            resultTexture?.Release();
+            if(resultTexture != null)
+            {
+                resultTexture.Release();
+            }
         }
 
         public override void OnCameraCleanup(CommandBuffer cmd)
@@ -465,8 +484,6 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
 
         void UpdateCameraParams(Camera cam)
         {
-            float focusDistance = 1;
-
             float planeHeight = focusDistance * Tan(cam.fieldOfView * 0.5f * Deg2Rad) * 2;
             float planeWidth = planeHeight * cam.aspect;
 

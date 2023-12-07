@@ -36,15 +36,16 @@ public class RenderFeatureEditor : Editor
                 break;
             case RenderModeRendererFeature.RenderMode.DELTATRACKING:
                 rf.deltaTrackingettings.SamplesPerPixel = EditorGUILayout.IntSlider("Samples Per Pixel", rf.deltaTrackingettings.SamplesPerPixel, 1, 4);
-                rf.deltaTrackingettings.MaxSamples = EditorGUILayout.IntSlider("Max Samples", rf.deltaTrackingettings.MaxSamples, 1, 10000);
+                rf.deltaTrackingettings.MaxSamples = EditorGUILayout.IntSlider("Max Samples", rf.deltaTrackingettings.MaxSamples, 1, 30000);
                 rf.deltaTrackingettings.Threshold = EditorGUILayout.Slider("Threshold", rf.deltaTrackingettings.Threshold, 0, 255);
                 rf.deltaTrackingettings.SigmaT = EditorGUILayout.FloatField("Sigma T", rf.deltaTrackingettings.SigmaT);
                 rf.deltaTrackingettings.Accumulate = EditorGUILayout.Toggle("Accumulate", rf.deltaTrackingettings.Accumulate);
                 rf.deltaTrackingettings.Color = EditorGUILayout.ColorField("Color", rf.deltaTrackingettings.Color);
                 rf.deltaTrackingettings.Blend = EditorGUILayout.Slider("Blend", rf.deltaTrackingettings.Blend, -1, 1);
                 rf.deltaTrackingettings.IncreaseThreshold = EditorGUILayout.Slider("Increase Threshold", rf.deltaTrackingettings.IncreaseThreshold, 0, 1);
-                rf.deltaTrackingettings.SD = EditorGUILayout.Slider("SD", rf.deltaTrackingettings.SD, 0, 20);
-                rf.deltaTrackingettings.SigmaBlur = EditorGUILayout.Slider("Sigma Blur", rf.deltaTrackingettings.SigmaBlur, 0.01f, 10);
+                rf.deltaTrackingettings.SD = EditorGUILayout.Slider("SD", rf.deltaTrackingettings.SD, 0, 50);
+                rf.deltaTrackingettings.DefocusStrength = EditorGUILayout.Slider("Diverge Strength", rf.deltaTrackingettings.DefocusStrength, 0.0f, 0.05f);
+                rf.deltaTrackingettings.FocusDistance = EditorGUILayout.Slider("Focus Distance", rf.deltaTrackingettings.FocusDistance, 0.1f, 10f);
                 break;
         }
 

@@ -69,7 +69,7 @@ float4 RayMarchOctree(float3 position, Ray ray)
 
 float4 OctreeFragment(Varyings IN) : SV_TARGET
 {
-    Ray ray = GetRay(IN.uv);
+    Ray ray = GetRay(IN.uv, _VolumeWorldToLocalMatrix);
     
     float3 hitPoint;
     if (RayBoundingBoxOS(ray, hitPoint))

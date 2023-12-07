@@ -31,11 +31,11 @@ MonoBehaviour:
   renderPassEvent: 300
   settings:
     StepSize: 0.001
-    Threshold: 0.118
+    Threshold: 0.161
     Color: {r: 0.9811321, g: 0.89690286, b: 0.6803133, a: 1}
   octreeSettings:
     OctreeLevel: 7
-    Threshold: 39
+    Threshold: -229
   cinematicSettings:
     Threshold: 0.05
     Accumulate: 0
@@ -44,15 +44,16 @@ MonoBehaviour:
     DisneyD: 4.67
   deltaTrackingettings:
     SamplesPerPixel: 1
-    MaxSamples: 10000
+    MaxSamples: 3000
     Threshold: 92
     Accumulate: 0
     Color: {r: 1, g: 0.382335, b: 0.376, a: 1}
-    SigmaT: 900
-    Blend: 0.2
+    SigmaT: 1000
+    Blend: 0.1
     IncreaseThreshold: 0.5
     SD: 20
-    SigmaBlur: 1
+    DefocusStrength: 0
+    FocusDistance: 0.54
 --- !u!114 &-3347501342411450359
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -73,6 +74,29 @@ MonoBehaviour:
     KernelRadius: 2
     Sigma: 2
     SigmaR: 0.3
+--- !u!114 &-1549187087805807650
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de0cf10828903f448bff25217498b749, type: 3}
+  m_Name: Tone Mapping
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  shader: {fileID: 4800000, guid: 036d0a180520f334c8157e50051e0868, type: 3}
+  renderPassEvent: 1000
+  settings:
+    ShoulderStrength: 0.22
+    LinearStrength: 0.3
+    LinearAngle: 0.1
+    ToeStrength: 0.2
+    ToeNumerator: 0.01
+    ToeDenominator: 0.3
+    LinearWhite: 3
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -92,9 +116,10 @@ MonoBehaviour:
   - {fileID: 6491367237887650202}
   - {fileID: 3674167480162463381}
   - {fileID: -3618375333725541457}
+  - {fileID: -1549187087805807650}
   - {fileID: -3347501342411450359}
   - {fileID: -4388415177794983309}
-  m_RendererFeatureMap: 9ae9e6301cf8155a952e604cdb43fd32afeb4011cef2c8cd09186cd043498bd173ea9888a53719c3
+  m_RendererFeatureMap: 9ae9e6301cf8155a952e604cdb43fd32afeb4011cef2c8cdde83b6348d2e80ea09186cd043498bd173ea9888a53719c3
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 0}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}

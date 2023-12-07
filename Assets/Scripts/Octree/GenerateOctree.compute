@@ -3,13 +3,9 @@
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Assets/Shaders/Library/OctreeUtils.hlsl"
+#include "Assets/Shaders/Library/Common.hlsl"
+#include "Assets/Shaders/Library/Volume.hlsl"
 
-Texture3D<half> _DensityTex;
-Texture3D<half4> _ClassifyTex;  SAMPLER(sampler_ClassifyTex);
-
-TEXTURE3D(_VolumeTex);  SAMPLER(sampler_point_clamp);
-
-float4 _VolumeTexelSize;
 float4 _Dimension;
 
 RWStructuredBuffer<float> _OctreeBuffer;
@@ -35,20 +31,9 @@ float SampleCell(uint3 id, uint dim)
                 float3 uv = float3(x + 0.5, y + 0.5, z + 0.5) * _VolumeTexelSize.xyz;
                 uv = clamp(0, 1, uv);
                 
-                half density = SAMPLE_TEXTURE3D_LOD(_VolumeTex, sampler_point_clamp, uv, 0).r;
+                float density = SAMPLE_TEXTURE3D_LOD(_VolumeTex, sampler_point_clamp, uv, 0).r;
                 
-                if (distance(uv.xy, float2(0.5, 0.5)) > 0.45)
-                {
-                    density = 0;
-                }
-                
-                int3 index = int3(clamp(x, 0, _Dimension.x - 1), clamp(y, 0, _Dimension.y - 1), clamp(z, 0, _Dimension.z - 1));
-                
-                half4 value = _ClassifyTex[index];
-                
-                //float4 value = SAMPLE_TEXTURE3D_LOD(_ClassifyTex, sampler_point_clamp, uv, 0).r;
-                
-                float val = max(max(max(value.r, value.g), value.b), value.a);
+                ClampBounds(uv, density);
                 
                 maxVal = max(maxVal, density);
             }

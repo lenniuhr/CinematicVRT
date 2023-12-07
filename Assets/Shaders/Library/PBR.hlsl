@@ -23,8 +23,9 @@ float G1_GGX_Schlick(float NdotV, float roughness)
   //float r = roughness; // original
     float r = 0.5 + 0.5 * roughness; // Disney remapping
     float k = (r * r) / 2.0;
-    float denom = NdotV * (1.0 - k) + k;
-    return NdotV / denom;
+    float denom = max(NdotV, 0.001) * (1.0 - k) + k;
+    return max(NdotV, 0.001) / denom;
+
 }
 
 float G_Smith(float NoV, float NoL, float roughness)
@@ -156,7 +157,6 @@ float3 SampleDiffuseMicrofacetBRDF(in float3 V, in float3 N, in float3 baseColor
        // half vector
     float3 H = normalize(V + L);
     float VoH = clamp(dot(V, H), 0.0, 1.0);
-    
     float NoV = clamp(dot(N, V), 0.0, 1.0);
     float NoL = clamp(dot(N, L), 0.0, 1.0);
       
