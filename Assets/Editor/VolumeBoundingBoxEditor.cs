@@ -12,7 +12,7 @@ public class VolumeBoundingBoxEditor : Editor
 
         if (GUILayout.Button("Reload Textures"))
         {
-            volumeBoundingBox.ReloadTextures();
+            volumeBoundingBox.Initialize();
         }
     }
 }

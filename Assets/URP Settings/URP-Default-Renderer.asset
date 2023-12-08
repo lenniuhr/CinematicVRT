@@ -46,14 +46,14 @@ MonoBehaviour:
     SamplesPerPixel: 1
     MaxSamples: 3000
     Threshold: 92
-    Accumulate: 0
+    Accumulate: 1
     Color: {r: 1, g: 0.382335, b: 0.376, a: 1}
-    SigmaT: 1000
+    SigmaT: 100
     Blend: 0.1
     IncreaseThreshold: 0.5
     SD: 20
     DefocusStrength: 0
-    FocusDistance: 0.54
+    FocusDistance: 1.12
 --- !u!114 &-3347501342411450359
 MonoBehaviour:
   m_ObjectHideFlags: 0

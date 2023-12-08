@@ -27,12 +27,9 @@ float4 _Color;
 int _FrameID;
 float _Threshold;
 
-float _SigmaT;
-
+float _SD;
 float _Blend;
-
 float _IncreaseThreshold;
-
 float _DivergeStrength;
 
 HitInfo DeltaTraceHomogenous(float3 position, Ray ray, inout uint rngState)
@@ -57,29 +54,6 @@ HitInfo DeltaTraceHomogenous(float3 position, Ray ray, inout uint rngState)
     }
     
     return hitInfo;
-}
-
-float GetSigmaForOctreeCell(int octreeLevel, int3 octreeId)
-{
-    float octreeValue = GetOctreeValueById(octreeLevel, octreeId);
-    
-    float density01 = InverseLerp(-1000.0, 2000.0, octreeValue);
-    
-    float alpha = SAMPLE_TEXTURE2D_LOD(_AlphaTex, sampler_AlphaTex, float2(density01, 0.5), 0).a;
-    
-    return _SigmaT * alpha;
-}
-
-float DensityToSigma(float density)
-{
-    float density01 = InverseLerp(-1000.0, 2000.0, density);
-    
-    //float d = InverseLerp(95, 100, density01);
-    //return _SigmaT * d;
-    
-    float alpha = SAMPLE_TEXTURE2D_LOD(_AlphaTex, sampler_AlphaTex, float2(density01, 0.5), 0).a;
-    
-    return _SigmaT * alpha;
 }
 
 void CoordinateSystem(float3 v1, out float3 v2, out float3 v3)
@@ -136,7 +110,8 @@ void IncreaseOctreeLevel(inout int level, inout int3 octreeId, float3 uv, int ma
 {
     while (level < maxLevel)
     {
-        float sigmaTCell = GetSigmaForOctreeCell(level, octreeId);
+        float octreeValue = GetOctreeValueById(level, octreeId);
+        float sigmaTCell = DensityToSigma(octreeValue);
         
         float meanFreePath = 1.0 / sigmaTCell;
         float cellSize = GetCellSize(level);
@@ -172,7 +147,8 @@ HitInfo DeltaTrackOctree(float3 position, Ray ray, inout uint rngState)
         float3 prevSamplePos = position + ray.dirOS * t;
         float3 prevUv = GetVolumeCoords(prevSamplePos);
         
-        float sigmaTCell = GetSigmaForOctreeCell(octreeLevel, octreeId);
+        float octreeValue = GetOctreeValueById(octreeLevel, octreeId);
+        float sigmaTCell = DensityToSigma(octreeValue);
         sigmaTCell = max(sigmaTCell, 0.001);
         
         float meanFreePath = 1.0 / sigmaTCell;
@@ -187,7 +163,9 @@ HitInfo DeltaTrackOctree(float3 position, Ray ray, inout uint rngState)
         {
             float parentCellSize = GetCellSize(octreeLevel - 1);
             int3 parentId = floor(octreeId / 2);
-            float parentCellSigmaT = GetSigmaForOctreeCell(octreeLevel - 1, parentId);
+            
+            float parentValue = GetOctreeValueById(octreeLevel - 1, parentId);
+            float parentCellSigmaT = DensityToSigma(parentValue);
             parentCellSigmaT = max(parentCellSigmaT, 0.001);
             
             float parentMeanFreePath = 1.0 / parentCellSigmaT;
@@ -381,8 +359,6 @@ float3 TracePDF(float3 position, Ray ray, inout uint rngState)
     return incomingLight;
 }
 
-float _SD;
-
 float3 Trace(float3 position, Ray ray, inout uint rngState)
 {
     float3 throughput = 1;
@@ -395,7 +371,7 @@ float3 Trace(float3 position, Ray ray, inout uint rngState)
         
         if (hit.debug)
         {
-            return float3(1, 0, 1);
+            //return float3(1, 0, 1);
         }
         
         if (hit.didHit)

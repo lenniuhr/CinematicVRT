@@ -26,12 +26,7 @@ public class TransferFunctionManager : MonoBehaviour
 
     private void Update()
     {
-        if(transferFunction == null)
-        {
-            return;
-        }
-
-        if(transferFunction.HasChanged())
+        if(transferFunction != null && transferFunction.HasChanged())
         {
             UpdateTransferTex();
         }
@@ -58,7 +53,9 @@ public class TransferFunctionManager : MonoBehaviour
         Shader.SetGlobalTexture("_AlbedoTex", albedoTexture);
         Shader.SetGlobalTexture("_RoughnessTex", roughnessTexture);
         Shader.SetGlobalTexture("_AlphaTex", alphaTexture);
-
+        Shader.SetGlobalFloat("_SigmaT", transferFunction.SigmaT);
+        Shader.SetGlobalFloat("_MinDensity", transferFunction.MinDensity);
+        Shader.SetGlobalFloat("_MaxDensity", transferFunction.MaxDensity);
         Shader.SetGlobalFloat("_GradientShift", transferFunction.GradientShift);
         Shader.SetGlobalFloat("_GradientLimit", transferFunction.GradientLimit);
 

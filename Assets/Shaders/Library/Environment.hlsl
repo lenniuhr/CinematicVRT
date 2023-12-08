@@ -32,6 +32,10 @@ float4 SampleEnvironment(float3 dirWS, int rayType)
     {
         skyData = SAMPLE_TEXTURECUBE(_ReflectionMap, sampler_ReflectionMap, dirWS);
     }
+    
+    
+    //skyData = SAMPLE_TEXTURECUBE(_IrradianceMap, sampler_IrradianceMap, dirWS);
+    
     return skyData;
 }
 

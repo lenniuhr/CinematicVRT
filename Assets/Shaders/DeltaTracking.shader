@@ -2,10 +2,10 @@ Shader "Hidden/DeltaTracking"
 {
     Properties
     {
-        _StepSize("Step Size", Float) = 0.004
-        _NormalOffset("Normal Offset", Float) = 1
-        _Threshold("Threshold", Float) = 0.5
-        _SigmaT("Sigma T", Float) = 1
+        _SD("SD", Float) = 20
+        _Blend("Blend", Float) = 0.1
+        _IncreaseThreshold("Increase Threshold", Float) = 0.5
+        _DivergeStrength("Diverge Strength", Float) = 0
     }
     SubShader
     {

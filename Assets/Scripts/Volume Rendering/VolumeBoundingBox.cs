@@ -37,7 +37,7 @@ public class VolumeBoundingBox : MonoBehaviour
         return _initalized;
     }
 
-    private void Initialize()
+    public void Initialize()
     {
         if (dataset == null || dataset.dataTex == null)
         {
@@ -45,6 +45,7 @@ public class VolumeBoundingBox : MonoBehaviour
             Debug.LogWarning("No Volume Texture Found!");
         }
 
+        transform.localScale = dataset.GetScale();
         UpdateTexture();
         UpdateShaderVariables();
         _initalized = true;

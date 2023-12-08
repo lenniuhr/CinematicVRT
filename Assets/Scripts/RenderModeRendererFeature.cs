@@ -419,7 +419,7 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             this.material = CoreUtils.CreateEngineMaterial("Hidden/DeltaTracking");
             material.hideFlags = HideFlags.HideAndDontSave;
             material.SetFloat("_Threshold", settings.Threshold);
-            material.SetFloat("_SigmaT", settings.SigmaT);
+            //material.SetFloat("_SigmaT", settings.SigmaT);
             material.SetColor("_Color", settings.Color.linear);
             material.SetFloat("_Blend", settings.Blend);
             material.SetFloat("_IncreaseThreshold", settings.IncreaseThreshold);
@@ -458,7 +458,12 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
                 frameID = 0;
             }
 
-            if(renderingData.cameraData.camera.transform.hasChanged)
+            if (FindObjectOfType<EnvironmentManager>().HasChanged())
+            {
+                frameID = 0;
+            }
+
+            if (renderingData.cameraData.camera.transform.hasChanged)
             {
                 renderingData.cameraData.camera.transform.hasChanged = false;
                 frameID = 0;
