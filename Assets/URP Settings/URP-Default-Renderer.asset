@@ -52,8 +52,8 @@ MonoBehaviour:
     Blend: 0.1
     IncreaseThreshold: 0.5
     SD: 20
-    DefocusStrength: 0
-    FocusDistance: 0.92
+    DefocusStrength: 0.0156
+    FocusDistance: 1.02
 --- !u!114 &-3347501342411450359
 MonoBehaviour:
   m_ObjectHideFlags: 0
