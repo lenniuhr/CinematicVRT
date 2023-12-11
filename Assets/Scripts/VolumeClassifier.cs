@@ -85,7 +85,8 @@ public class VolumeClassifier : MonoBehaviour
     {
 
         Texture3D densityTex = FindObjectOfType<VolumeBoundingBox>().GetDataTexture();
-        RenderTexture gradientTex = FindObjectOfType<VolumeBoundingBox>().GetGradientTexture();
+        //RenderTexture gradientTex = FindObjectOfType<VolumeBoundingBox>().GetGradientTexture();
+        RenderTexture gradientTex = null;
 
         if (densityTex == null || gradientTex == null) return;
 
@@ -180,7 +181,8 @@ public class VolumeClassifier : MonoBehaviour
     public void RunSliceClassification()
     {
         Texture3D densityTex = FindObjectOfType<VolumeBoundingBox>().GetDataTexture();
-        RenderTexture gradientTex = FindObjectOfType<VolumeBoundingBox>().GetGradientTexture();
+        //RenderTexture gradientTex = FindObjectOfType<VolumeBoundingBox>().GetGradientTexture();
+        RenderTexture gradientTex = null;
 
         if (densityTex == null || gradientTex == null) return;
 

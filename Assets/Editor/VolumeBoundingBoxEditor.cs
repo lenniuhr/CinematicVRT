@@ -10,7 +10,7 @@ public class VolumeBoundingBoxEditor : Editor
 
         DrawDefaultInspector();
 
-        if (GUILayout.Button("Reload Textures"))
+        if (GUILayout.Button("Reload Volume"))
         {
             volumeBoundingBox.Initialize();
         }

@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b076dc64d8da09408b3b8f81e0d03a7, type: 3}
+  m_Name: Cinema
+  m_EditorClassIdentifier: 
+  EnvironmentMap: {fileID: 8900000, guid: 05e7c9efc067de8419ca41bc009ae353, type: 3}
+  IrradianceMap: {fileID: 8900000, guid: a00da5b0c63db744eb7525e768df046d, type: 2}
+  ReflectionMap: {fileID: 8900000, guid: 5e87dac71fb059e4eb61c5500553b986, type: 2}

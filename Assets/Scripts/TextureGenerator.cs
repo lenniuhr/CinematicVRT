@@ -71,9 +71,8 @@ public class TextureGenerator : MonoBehaviour
 
     public void BlurCubemap()
     {
-        ;
-
         Debug.Log($"Cubemap has width {cubemap.width}");
+        Debug.Log($"Cubemap format: {cubemap.format}");
 
         Texture2D result = new Texture2D(cubemap.width, cubemap.width, TextureFormat.RGBAFloat, false);
 
@@ -148,16 +147,14 @@ public class TextureGenerator : MonoBehaviour
 
                 // Copy the data
                 for (var i = 0; i < request.layerCount; i++)
-                    {
+                {
                     resultTextures.SetPixels(request.GetData<Color>(i).ToArray(), i);
-                    }
+                }
 
                 resultTextures.Apply();
 
                 // You'll want to release the no longer required GPU texture somewhere here
                 //resultArray.Release();
-
-
 
                 // Copy Texture2DArray to Cubemap
 
@@ -171,7 +168,7 @@ public class TextureGenerator : MonoBehaviour
 
                 //resultCubemap.SetPixels(cubemap.GetPixels(CubemapFace.PositiveX, 0), CubemapFace.PositiveX);
 
-                resultCubemap.Apply();
+                resultCubemap.Apply(false);
 
 
                 Debug.Log($"Finished copy cubemap");
@@ -180,7 +177,7 @@ public class TextureGenerator : MonoBehaviour
                 //Shader.SetGlobalTexture("_IrradianceMap", cubemap);
 
 
-                string path = "Assets/Textures/HDRI Environments/ReflectionMap.asset";
+                string path = "Assets/Textures/Environment/ReflectionMap.asset";
                 AssetDatabase.DeleteAsset(path);
                 AssetDatabase.CreateAsset(resultCubemap, path);
 

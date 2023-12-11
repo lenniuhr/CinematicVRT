@@ -9,6 +9,10 @@ public class TransferFunctionManager : MonoBehaviour
 
     private bool hasChanged = false;
 
+    private Texture2D albedoTexture;
+    private Texture2D roughnessTexture;
+    private Texture2D alphaTexture;
+
     public bool HasChanged()
     {
         if (hasChanged)
@@ -22,6 +26,11 @@ public class TransferFunctionManager : MonoBehaviour
     private void OnEnable()
     {
         UpdateTransferTex();
+    }
+
+    private void OnDisable()
+    {
+
     }
 
     private void Update()
@@ -46,9 +55,9 @@ public class TransferFunctionManager : MonoBehaviour
             return;
         }
 
-        Texture2D albedoTexture = GenerateTexture(transferFunction.Albedo);
-        Texture2D roughnessTexture = GenerateTexture(transferFunction.Roughness);
-        Texture2D alphaTexture = GenerateTexture(transferFunction.Alpha);
+        GenerateTexture(ref albedoTexture, transferFunction.Albedo);
+        GenerateTexture(ref roughnessTexture, transferFunction.Roughness);
+        GenerateTexture(ref alphaTexture, transferFunction.Alpha);
 
         Shader.SetGlobalTexture("_AlbedoTex", albedoTexture);
         Shader.SetGlobalTexture("_RoughnessTex", roughnessTexture);
@@ -63,11 +72,14 @@ public class TransferFunctionManager : MonoBehaviour
         hasChanged = true;
     }
 
-    private Texture2D GenerateTexture(Gradient gradient)
+    private void GenerateTexture(ref Texture2D texture, Gradient gradient)
     {
-        Texture2D texture = new Texture2D(WIDTH, 1, TextureFormat.ARGB32, false);
-        texture.wrapMode = TextureWrapMode.Clamp;
-        texture.filterMode = FilterMode.Bilinear;
+        if(texture == null)
+        {
+            texture = new Texture2D(WIDTH, 1, TextureFormat.ARGB32, false);
+            texture.wrapMode = TextureWrapMode.Clamp;
+            texture.filterMode = FilterMode.Bilinear;
+        }
 
         for (int i = 0; i < WIDTH; ++i)
         {
@@ -75,7 +87,5 @@ public class TransferFunctionManager : MonoBehaviour
             texture.SetPixel(i, 0, gradient.Evaluate(t));
         }
         texture.Apply(false);
-
-        return texture;
     }
 }

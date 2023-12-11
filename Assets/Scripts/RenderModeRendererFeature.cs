@@ -105,7 +105,14 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
-        renderer.EnqueuePass(m_RenderPass);
+        if(renderingData.cameraData.camera.name == "SceneCamera" || renderingData.cameraData.camera.name == "Main Camera")
+        {
+            renderer.EnqueuePass(m_RenderPass);
+        }
+        else
+        {
+            Debug.Log("Skipped render pass for " + renderingData.cameraData.camera.name);
+        }
     }
 
     public void UpdateRenderMode(RenderMode mode)
@@ -419,7 +426,6 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             this.material = CoreUtils.CreateEngineMaterial("Hidden/DeltaTracking");
             material.hideFlags = HideFlags.HideAndDontSave;
             material.SetFloat("_Threshold", settings.Threshold);
-            //material.SetFloat("_SigmaT", settings.SigmaT);
             material.SetColor("_Color", settings.Color.linear);
             material.SetFloat("_Blend", settings.Blend);
             material.SetFloat("_IncreaseThreshold", settings.IncreaseThreshold);
@@ -453,12 +459,9 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             currentFrame.Init("_CurrentFrame");
             prevFrame.Init("_PrevFrame");
 
-            if(FindObjectOfType<TransferFunctionManager>().HasChanged())
-            {
-                frameID = 0;
-            }
-
-            if (FindObjectOfType<EnvironmentManager>().HasChanged())
+            if(FindObjectOfType<TransferFunctionManager>().HasChanged()
+                || FindObjectOfType<EnvironmentManager>().HasChanged()
+                || FindObjectOfType<VolumeBoundingBox>().HasChanged())
             {
                 frameID = 0;
             }
@@ -468,6 +471,15 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
                 renderingData.cameraData.camera.transform.hasChanged = false;
                 frameID = 0;
             }
+
+            //renderingData.cameraData.camera
+
+            //Debug.Log(Camera.current.name);
+
+            //Debug.Log(renderingData.cameraData.camera.name);
+
+            //Debug.Log(desc.width + ", " + desc.height);
+
 
             cmd.GetTemporaryRT(currentFrame.id, desc, FilterMode.Point);
             cmd.GetTemporaryRT(prevFrame.id, desc, FilterMode.Point);

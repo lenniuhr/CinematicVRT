@@ -5,6 +5,7 @@
 #include "Assets/Shaders/Library/Volume.hlsl"
 #include "Assets/Shaders/Library/DefaultInput.hlsl"
 #include "Assets/Shaders/Library/Octree.hlsl"
+#include "Assets/Shaders/Library/Environment.hlsl"
 
 float _Threshold;
 int _OctreeLevel;
@@ -34,7 +35,7 @@ float4 RayMarchOctree(float3 position, Ray ray)
             value = GetOctreeValueById(octreeLevel, octreeId);
             if (octreeLevel >= _OctreeLevel && value > _Threshold)
             {
-                return float4(GetOctreeNormal(octreeLevel, octreeId, uv) * 0.5 + 0.5, 1);
+                //return float4(GetOctreeNormal(octreeLevel, octreeId, uv) * 0.5 + 0.5, 1);
                 break;
             }
         }
@@ -75,10 +76,13 @@ float4 OctreeFragment(Varyings IN) : SV_TARGET
     if (RayBoundingBoxOS(ray, hitPoint))
     {
         float4 output = RayMarchOctree(hitPoint, ray);
-        return output;
+        
+        float4 skyData = SampleEnvironment(ray.dirWS, 0);
+        
+        return lerp(skyData, output, 0.95);
         
     }
-    return float4(0, 0, 0, 1);
+    return SampleEnvironment(ray.dirWS, 0);
 }
 
 #endif

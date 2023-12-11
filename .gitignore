@@ -72,6 +72,7 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 
 # Large 3D Textures and data
-/[Aa]ssets/3D Textures
-/Data
-*.asset
+/[Aa]ssets/[Tt]extures/[Ee]nvironment
+/[Aa]ssets/[Vv]olume Data
+/[Dd]ata
+

@@ -10,6 +10,7 @@
 #include "Assets/Shaders/Library/Octree.hlsl"
 #include "Assets/Shaders/Library/PBR.hlsl"
 #include "Assets/Shaders/Library/TransferFunction.hlsl"
+#include "Assets/Shaders/Library/PhaseFunction.hlsl"
 
 TEXTURE2D(_CopyTex);
 TEXTURE2D(_Result);    
@@ -54,47 +55,6 @@ HitInfo DeltaTraceHomogenous(float3 position, Ray ray, inout uint rngState)
     }
     
     return hitInfo;
-}
-
-void CoordinateSystem(float3 v1, out float3 v2, out float3 v3)
-{
-    if (abs(v1.x) > abs(v1.y))
-    {
-        v2 = float3(-v1.z, 0, v1.x) / sqrt(v1.x * v1.x + v1.z * v1.z);
-    }
-    else
-    {
-        v2 = float3(0, v1.z, -v1.y) / sqrt(v1.y * v1.y + v1.z * v1.z);
-    }
-    v3 = cross(v1, v2);
-}
-
-float3 SphericalDirection(float sinTheta, float cosTheta, float phi, float3 x, float3 y, float3 z)
-{
-    return sinTheta * cos(phi) * x + sinTheta * sin(phi) * y + cosTheta * z;
-}
-
-float3 SampleDirection(float3 direction, float g, inout uint rngState)
-{
-    float cosTheta;
-    if (abs(g) < 1e-3)
-    {
-        cosTheta = 1.0 - 2.0 * RandomValue(rngState);
-    }
-    else
-    {
-        float sqrTerm = (1.0 - g * g) / (1.0 - g + 2.0 * g * RandomValue(rngState));
-        cosTheta = (1.0 + g * g - sqrTerm * sqrTerm) / (2.0 * g);
-    }
-    
-    float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
-    float phi = 2.0 * PI * RandomValue(rngState);
-    
-    
-    float3 v1, v2;
-    CoordinateSystem(direction, v1, v2);
-    
-    return SphericalDirection(sinTheta, cosTheta, phi, v1, v2, direction);
 }
 
 float4 SampleColor(float density, float3 gradient)
@@ -266,8 +226,14 @@ HitInfo DeltaTraceHeterogenous(float3 position, Ray ray, inout uint rngState)
         
         if (value01 > RandomValue(rngState))
         {
+            float3 gradient;
+            float3 normal;
+            SampleGradientAndNormal(uv, gradient, normal);
+            
             hitInfo.didHit = true;
             hitInfo.hitPointOS = samplePos;
+            hitInfo.normalOS = normal;
+            hitInfo.gradient = gradient;
             hitInfo.material.color = i / 1000.0;
             return hitInfo;
         }
@@ -387,6 +353,8 @@ float3 Trace(float3 position, Ray ray, inout uint rngState)
             //pBRDF = _SD / 20;//
             //pBRDF = 1;
             
+            //return saturate(hit.normalOS);
+            
             if (pBRDF > RandomValue(rngState))
             {
                 if (dot(-ray.dirOS, hit.normalOS) < 0)
@@ -420,7 +388,7 @@ float3 Trace(float3 position, Ray ray, inout uint rngState)
             else
             {
                 // Volumetric scattering
-                float3 nextDir = SampleDirection(ray.dirOS, _Blend, rngState);
+                float3 nextDir = SamplePhaseFunctionHG(ray.dirOS, _Blend, rngState);
             
                 position = hit.hitPointOS;
                 ray.originOS = hit.hitPointOS;
@@ -428,17 +396,6 @@ float3 Trace(float3 position, Ray ray, inout uint rngState)
                 ray.type = 1;
                 throughput *= pow(hit.material.color, 0.5);
             }
-            
-            /*
-            if (i > 2)
-            {
-                float m = max(throughput.r, max(throughput.g, throughput.b));
-                
-                if (RandomValue(rngState) < m)
-                    throughput /= m;
-                else
-                    break;
-            }*/
         }
         else
         {
