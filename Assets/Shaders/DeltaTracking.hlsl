@@ -418,6 +418,7 @@ float4 DeltaTrackingFragment(Varyings IN) : SV_TARGET
     uint2 pixelCoord = IN.uv * numPixels;
     uint pixelIndex = pixelCoord.y * numPixels.x + pixelCoord.x;
     uint rngState = pixelIndex + _FrameID * 719393;
+    //uint rngState = _FrameID * 719393;
     
     float2 jitter = RandomPointInCircle(rngState) * _DivergeStrength;
     Ray ray = GetRay(IN.uv, _VolumeWorldToLocalMatrix, pixelOffset, jitter);

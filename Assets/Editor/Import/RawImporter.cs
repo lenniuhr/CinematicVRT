@@ -45,8 +45,6 @@ public class RawImporter
             return null;
         }
 
-        //float[] data = new float[width * height * depth];
-
         ushort[] textureData = new ushort[width * height * depth];
 
         // Read data async

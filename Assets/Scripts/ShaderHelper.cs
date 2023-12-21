@@ -1,5 +1,4 @@
 using UnityEngine;
-using static VolumeClassifier;
 
 public static class ShaderHelper
 {

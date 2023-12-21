@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using System.Data;
 
 public class DicomImporter
 {
@@ -29,9 +30,19 @@ public class DicomImporter
         this.folderPath = folderPath;
     }
 
+    public void GetDimensions(List<DicomSlice> slices, out int width, out int height, out int depth)
+    {
+        ImageData imageData0 = new ImageData(slices[0].dicomFile.Dataset);
+        width = imageData0.Pixels.Width;
+        height = imageData0.Pixels.Height;
+        depth = slices.Count;
+    }
+
     public async Task<VolumeDataset> ImportAsync()
     {
         VolumeDataset dataset = ScriptableObject.CreateInstance<VolumeDataset>();
+
+        ushort[] textureData = null;
 
         await Task.Run(() =>
         {
@@ -42,8 +53,8 @@ public class DicomImporter
             CalculateSliceLocations(slices);
             slices.Sort((DicomSlice a, DicomSlice b) => { return a.location.CompareTo(b.location); });
 
-            // Convert slices into VolumeDataset
-            ConvertDicomSlices(slices, dataset);
+            // Convert slices into textureData
+            ConvertDicomSlices(slices, dataset, out textureData);
 
             // Calculate spacing of dataset
             dataset.spacing = new Vector3(
@@ -52,6 +63,14 @@ public class DicomImporter
                 Mathf.Abs(slices[slices.Count - 1].location - slices[0].location) / (slices.Count - 1) 
             );
         });
+
+        dataset.dataTex = new Texture3D(dataset.width, dataset.height, dataset.depth, TextureFormat.RHalf, false);
+        dataset.dataTex.wrapMode = TextureWrapMode.Clamp;
+        dataset.dataTex.filterMode = FilterMode.Bilinear;
+        dataset.dataTex.name = "Data Texture";
+
+        dataset.dataTex.SetPixelData(textureData, 0);
+        dataset.dataTex.Apply();
 
         return dataset;
     }
@@ -71,7 +90,7 @@ public class DicomImporter
         return slices;
     }
 
-    private void ConvertDicomSlices(List<DicomSlice> slices, VolumeDataset dataset)
+    private void ConvertDicomSlices(List<DicomSlice> slices, VolumeDataset dataset, out ushort[] textureData)
     {
         Debug.Log($"Converting {slices.Count} DICOM slices");
 
@@ -83,7 +102,7 @@ public class DicomImporter
         dataset.height = imageData0.Pixels.Height;
         dataset.depth = slices.Count;
 
-        float[] data = new float[dataset.width * dataset.height * dataset.depth];
+        textureData = new ushort[dataset.width * dataset.height * dataset.depth];
         float min = float.MaxValue;
         float max = float.MinValue;
 
@@ -112,13 +131,12 @@ public class DicomImporter
                     if (value < min) min = value;
 
                     int dataIndex = (z * dataset.width * dataset.height) + (y * dataset.width) + x;
-                    data[dataIndex] = value;
+                    textureData[dataIndex] = Mathf.FloatToHalf(value);
                 }
             }
         }
         dataset.minValue = min;
         dataset.maxValue = max;
-        dataset.SetData(data);
     }
 
     private DicomSlice ReadDicomFile(string filePath)

@@ -36,10 +36,11 @@ void ClampBounds(float3 uv, inout float density)
         density = lerp(density, -1000, VectorMax(edge));
     }
     
+    /*
     if (uv.z > 0.8)
     {
         density = -1000;
-    }
+    }*/
     
     // Clamp cylinder
     float x = VectorMax(w);

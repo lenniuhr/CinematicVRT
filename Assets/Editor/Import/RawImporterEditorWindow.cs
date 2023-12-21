@@ -48,8 +48,6 @@ public class RawImporterEditorWindow : EditorWindow
 
         if (dataset != null)
         {
-
-
             string path = "Assets/Volume Data/" + dataset.datasetName + ".asset";
             AssetDatabase.CreateAsset(dataset, path);
 

@@ -42,6 +42,12 @@ public class CVRTEditorFunctions
             AssetDatabase.CreateAsset(dataset, path);
 
             Debug.Log("Created dataset for " + dataset.datasetName);
+
+            AssetDatabase.AddObjectToAsset(dataset.dataTex, path);
+
+            AssetDatabase.SaveAssets();
+
+            Debug.Log("Added data tex to asset");
         }
     }
 }

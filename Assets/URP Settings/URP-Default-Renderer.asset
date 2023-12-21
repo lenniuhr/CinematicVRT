@@ -44,16 +44,16 @@ MonoBehaviour:
     DisneyD: 4.67
   deltaTrackingettings:
     SamplesPerPixel: 1
-    MaxSamples: 1000
+    MaxSamples: 10000
     Threshold: 92
     Accumulate: 1
     Color: {r: 1, g: 0.382335, b: 0.376, a: 1}
     SigmaT: 100
     Blend: 0.1
     IncreaseThreshold: 0.5
-    SD: 20
-    DefocusStrength: 0.0156
-    FocusDistance: 1.02
+    SD: 50
+    DefocusStrength: 0
+    FocusDistance: 0.59
 --- !u!114 &-3347501342411450359
 MonoBehaviour:
   m_ObjectHideFlags: 0
