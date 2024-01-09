@@ -72,7 +72,8 @@ public class VolumeBoundingBox : MonoBehaviour
         Shader.SetGlobalFloat("_VolumeClampRadius", ClampRadius);
         Shader.SetGlobalVector("_VolumePosition", transform.position);
         Shader.SetGlobalVector("_VolumeScale", transform.localScale);
-
+        Vector3 normalizedSpacing = dataset.GetNormalizedSpacing();
+        Shader.SetGlobalVector("_VolumeSpacing", normalizedSpacing);
         Shader.SetGlobalMatrix("_VolumeWorldToLocalMatrix", transform.worldToLocalMatrix);
         Shader.SetGlobalMatrix("_VolumeLocalToWorldMatrix", transform.localToWorldMatrix);
     }

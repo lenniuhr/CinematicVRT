@@ -34,8 +34,8 @@ MonoBehaviour:
     Threshold: 0.161
     Color: {r: 0.9811321, g: 0.89690286, b: 0.6803133, a: 1}
   octreeSettings:
-    OctreeLevel: 7
-    Threshold: 786
+    OctreeLevel: 5
+    Threshold: -160
   cinematicSettings:
     Threshold: 0.05
     Accumulate: 0
@@ -44,7 +44,7 @@ MonoBehaviour:
     DisneyD: 4.67
   deltaTrackingettings:
     SamplesPerPixel: 1
-    MaxSamples: 10000
+    MaxSamples: 1000
     Threshold: 92
     Accumulate: 1
     Color: {r: 1, g: 0.382335, b: 0.376, a: 1}

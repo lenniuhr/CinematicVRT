@@ -294,37 +294,6 @@ float3 SampleDiffuseBruteForce(in float3 V, in float3 N, in float3 baseColor, in
     return nextDir;
 }
 
-float3 TracePDF(float3 position, Ray ray, inout uint rngState)
-{
-    float3 throughput = 1;
-    float3 incomingLight = 0;
-    
-    for (int i = 0; i <= 10; i++)
-    {
-        HitInfo hit = DeltaTrackOctree(position, ray, rngState);
-        
-        if (hit.didHit)
-        {
-            float3 nextFactor;
-            float3 nextDir = SampleDiffuseImportance(ray.dirOS, hit.normalOS, hit.material.color, rngState, nextFactor);
-            
-            position = hit.hitPointOS;
-            ray.originOS = hit.hitPointOS;
-            ray.dirOS = nextDir;
-            ray.type = 1;
-            throughput *= nextFactor;
-        }
-        else
-        {
-            float3 dirWS = normalize(mul((float3x3) _VolumeLocalToWorldMatrix, ray.dirOS));
-            float4 skyData = SampleEnvironment(dirWS, ray.type);
-            incomingLight = throughput * skyData.rgb;
-            break;
-        }
-    }
-    return incomingLight;
-}
-
 float3 Trace(float3 position, Ray ray, inout uint rngState)
 {
     float3 throughput = 1;

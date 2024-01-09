@@ -3,6 +3,7 @@ using System.Data;
 using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class VolumeDataset : ScriptableObject
 {
@@ -35,6 +36,12 @@ public class VolumeDataset : ScriptableObject
         Vector3 scale = new Vector3(width * spacing.x, height * spacing.y, depth * spacing.z);
         float maxDim = Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z));
         return scale / maxDim;
+    }
+
+    public Vector3 GetNormalizedSpacing()
+    {
+        Vector3 normSpacing = spacing / Mathf.Min(spacing.x, Mathf.Min(spacing.y, spacing.z));
+        return normSpacing;
     }
 
     public async Task<Texture2D> GetHistogram()

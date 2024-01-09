@@ -14,16 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Albedo:
     serializedVersion: 2
-    key0: {r: 0.32322142, g: 0.24279204, b: 0.97900003, a: 1}
-    key1: {r: 1, g: 0.85098046, b: 0.5176471, a: 1}
-    key2: {r: 1, g: 0.97148925, b: 0.922, a: 1}
+    key0: {r: 0.2300641, g: 0.4097552, b: 0.8867924, a: 1}
+    key1: {r: 0.62793696, g: 0.8822822, b: 0.9716981, a: 1}
+    key2: {r: 0.62793696, g: 0.8822822, b: 0.9716981, a: 1}
     key3: {r: 1, g: 1, b: 1, a: 0}
     key4: {r: 1, g: 1, b: 1, a: 0}
     key5: {r: 1, g: 1, b: 1, a: 0}
     key6: {r: 1, g: 1, b: 1, a: 0}
     key7: {r: 0, g: 0, b: 0, a: 0}
     ctime0: 15151
-    ctime1: 22126
+    ctime1: 27537
     ctime2: 27537
     ctime3: 27537
     ctime4: 65535
@@ -39,11 +39,11 @@ MonoBehaviour:
     atime6: 0
     atime7: 0
     m_Mode: 0
-    m_NumColorKeys: 3
+    m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   Roughness:
     serializedVersion: 2
-    key0: {r: 1, g: 1, b: 1, a: 1}
+    key0: {r: 1, g: 1, b: 1, a: 0}
     key1: {r: 1, g: 1, b: 1, a: 0}
     key2: {r: 0, g: 0, b: 0, a: 0}
     key3: {r: 0, g: 0, b: 0, a: 0}
@@ -59,8 +59,8 @@ MonoBehaviour:
     ctime5: 0
     ctime6: 0
     ctime7: 0
-    atime0: 20442
-    atime1: 22246
+    atime0: 0
+    atime1: 65535
     atime2: 65535
     atime3: 0
     atime4: 0
@@ -74,8 +74,8 @@ MonoBehaviour:
     serializedVersion: 2
     key0: {r: 1, g: 1, b: 1, a: 0}
     key1: {r: 1, g: 1, b: 1, a: 0}
-    key2: {r: 0, g: 0, b: 0, a: 0.019607844}
-    key3: {r: 0, g: 0, b: 0, a: 0.79607844}
+    key2: {r: 0, g: 0, b: 0, a: 0.57254905}
+    key3: {r: 0, g: 0, b: 0, a: 1}
     key4: {r: 0, g: 0, b: 0, a: 1}
     key5: {r: 0, g: 0, b: 0, a: 1}
     key6: {r: 0, g: 0, b: 0, a: 1}
@@ -89,18 +89,18 @@ MonoBehaviour:
     ctime6: 0
     ctime7: 0
     atime0: 0
-    atime1: 13107
-    atime2: 14911
-    atime3: 17316
+    atime1: 7710
+    atime2: 11565
+    atime3: 20683
     atime4: 20683
     atime5: 25853
     atime6: 25853
     atime7: 0
     m_Mode: 0
     m_NumColorKeys: 2
-    m_NumAlphaKeys: 5
+    m_NumAlphaKeys: 4
   SigmaT: 600
-  MinDensity: -100
+  MinDensity: -1000
   MaxDensity: 1000
   GradientShift: 0.15
   GradientLimit: 0.1

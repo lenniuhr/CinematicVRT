@@ -14,17 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Albedo:
     serializedVersion: 2
-    key0: {r: 1, g: 0.8360382, b: 0.543, a: 1}
-    key1: {r: 1, g: 0.88824, b: 0.746, a: 1}
-    key2: {r: 1, g: 0.9568628, b: 0.90196085, a: 1}
+    key0: {r: 1, g: 0.68454117, b: 0.26199996, a: 1}
+    key1: {r: 0.98039216, g: 0.96297455, b: 0.85490197, a: 1}
+    key2: {r: 0.85617656, g: 0.9475875, b: 0.9811321, a: 1}
     key3: {r: 1, g: 0.9568628, b: 0.90196085, a: 0}
     key4: {r: 1, g: 0.9568628, b: 0.90196085, a: 0}
     key5: {r: 1, g: 0.9568628, b: 0.90196085, a: 0}
     key6: {r: 1, g: 0.9568628, b: 0.90196085, a: 0}
     key7: {r: 0, g: 0, b: 0, a: 0}
-    ctime0: 7816
-    ctime1: 31024
-    ctime2: 28258
+    ctime0: 17926
+    ctime1: 25443
+    ctime2: 29105
     ctime3: 20923
     ctime4: 24170
     ctime5: 22366
@@ -44,7 +44,7 @@ MonoBehaviour:
   Roughness:
     serializedVersion: 2
     key0: {r: 1, g: 1, b: 1, a: 1}
-    key1: {r: 1, g: 1, b: 1, a: 0.8627451}
+    key1: {r: 1, g: 1, b: 1, a: 0}
     key2: {r: 0, g: 0, b: 0, a: 0}
     key3: {r: 0, g: 0, b: 0, a: 0}
     key4: {r: 0, g: 0, b: 0, a: 0}
@@ -59,7 +59,7 @@ MonoBehaviour:
     ctime5: 0
     ctime6: 0
     ctime7: 0
-    atime0: 20442
+    atime0: 20624
     atime1: 22246
     atime2: 65535
     atime3: 0
@@ -74,7 +74,7 @@ MonoBehaviour:
     serializedVersion: 2
     key0: {r: 1, g: 1, b: 1, a: 0}
     key1: {r: 1, g: 1, b: 1, a: 0}
-    key2: {r: 0, g: 0, b: 0, a: 0.21176471}
+    key2: {r: 0, g: 0, b: 0, a: 1}
     key3: {r: 0, g: 0, b: 0, a: 1}
     key4: {r: 0, g: 0, b: 0, a: 1}
     key5: {r: 0, g: 0, b: 0, a: 1}
@@ -89,16 +89,16 @@ MonoBehaviour:
     ctime6: 0
     ctime7: 0
     atime0: 0
-    atime1: 2285
-    atime2: 12025
-    atime3: 13227
-    atime4: 20683
+    atime1: 6168
+    atime2: 18311
+    atime3: 19661
+    atime4: 39321
     atime5: 25853
     atime6: 25853
     atime7: 0
     m_Mode: 0
     m_NumColorKeys: 2
-    m_NumAlphaKeys: 4
+    m_NumAlphaKeys: 3
   SigmaT: 1000
   MinDensity: -1000
   MaxDensity: 1000

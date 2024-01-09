@@ -16,6 +16,7 @@ float3 _VolumeTexelSize;
 float _VolumeClampRadius;
 float3 _VolumePosition;
 float3 _VolumeScale;
+float3 _VolumeSpacing;
 
 float4x4 _VolumeWorldToLocalMatrix;
 float4x4 _VolumeLocalToWorldMatrix;
@@ -71,7 +72,11 @@ void SampleGradientAndNormal(float3 uv, out float3 gradient, out float3 normal)
     float z1 = SAMPLE_TEXTURE3D_LOD(_VolumeTex, sampler_VolumeTex, uvZ1, 0).r;
     float z2 = SAMPLE_TEXTURE3D_LOD(_VolumeTex, sampler_VolumeTex, uvZ2, 0).r;
     
-    gradient = float3((x2 - x1) / densityRange, (y2 - y1) / densityRange, (z2 - z1) / densityRange);
+    gradient = float3(
+    (x2 - x1) / (densityRange * _VolumeSpacing.x),
+    (y2 - y1) / (densityRange * _VolumeSpacing.y),
+    (z2 - z1) / (densityRange * _VolumeSpacing.z)
+    );
     
     ClampBounds(uvX1, x1);
     ClampBounds(uvX2, x2);
@@ -80,7 +85,11 @@ void SampleGradientAndNormal(float3 uv, out float3 gradient, out float3 normal)
     ClampBounds(uvZ1, z1);
     ClampBounds(uvZ2, z2);
     
-    normal = normalize(float3((x2 - x1) / densityRange, (y2 - y1) / densityRange, (z2 - z1) / densityRange));
+    normal = normalize(float3(
+    (x2 - x1) / (densityRange * _VolumeSpacing.x),
+    (y2 - y1) / (densityRange * _VolumeSpacing.y),
+    (z2 - z1) / (densityRange * _VolumeSpacing.z)
+    ));
 }
 
 float SampleDensity(float3 uv)
