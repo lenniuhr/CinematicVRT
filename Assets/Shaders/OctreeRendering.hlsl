@@ -10,6 +10,48 @@
 float _Threshold;
 int _OctreeLevel;
 
+
+float4 RayMarch(float3 position, Ray ray)
+{
+    int steps = 0;
+    
+    int octreeLevel = 7;
+    
+    float3 uv = GetVolumeCoords(position);
+    
+    int3 octreeId = GetOctreeId(octreeLevel, uv);
+    
+    [loop]
+    for (int i = 0; i < 1000; i++)
+    {
+        float value = GetOctreeValueById(octreeLevel, octreeId);
+        
+        // when the current cell is above the threshold, increase the octree level
+        if (value > _Threshold)
+        {
+            break;
+        }
+        
+        int3 lastId = octreeId;
+        RayOctree(ray.dirOS, octreeLevel, octreeId, position);
+        
+        if (Equals(lastId, octreeId))
+        {
+            return float4(1, 0, 1, 1);
+        }
+        
+        steps++;
+        
+        // Break when the octree id is out of bounds
+        if (IsInvalid(octreeLevel, octreeId))
+        {
+            break;
+        }
+    }
+    
+    return (float) steps / 300.0;
+}
+
 float4 RayMarchOctree(float3 position, Ray ray)
 {
     int steps = 0;

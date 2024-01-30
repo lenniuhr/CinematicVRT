@@ -45,6 +45,7 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
         public float SD = 1;
         public float DefocusStrength = 0f;
         public float FocusDistance = 1f;
+        public float PTerminate = 0.3f;
     }
 
     public RenderMode renderMode = RenderMode.VOLUME;
@@ -111,7 +112,7 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
         }
         else
         {
-            Debug.Log("Skipped render pass for " + renderingData.cameraData.camera.name);
+            //Debug.Log("Skipped render pass for " + renderingData.cameraData.camera.name);
         }
     }
 
@@ -431,6 +432,7 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             material.SetFloat("_IncreaseThreshold", settings.IncreaseThreshold);
             material.SetFloat("_SD", settings.SD);
             material.SetFloat("_DivergeStrength", settings.DefocusStrength);
+            material.SetFloat("_PTerminate", settings.PTerminate); 
 
             accumulate = settings.Accumulate;
             samplesPerPixel = settings.SamplesPerPixel;
@@ -558,6 +560,11 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
                         Draw(cmd, Pass.Accumulate);
 
                         frameID++;
+
+                        if(frameID % 100 == 0)
+                        {
+                            Debug.Log("Rendered " + frameID + " frames");
+                        }
                     }
                 }
 

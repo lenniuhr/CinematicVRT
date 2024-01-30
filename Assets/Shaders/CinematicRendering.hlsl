@@ -349,12 +349,12 @@ float3 Trace(float3 position, Ray ray, inout uint rngState)
             float3 nextDir;
             if (RandomValue(rngState) > 0.5)
             {
-                nextDir = SampleSpecularMicrofacetBRDF(-ray.dirOS, hit.normalOS, hit.material.color, hit.material.metallicness, hit.material.reflectance, hit.material.roughness, r, nextFactor);
+                nextDir = SampleSpecularMicrofacetBRDF(-ray.dirOS, hit.normalOS, hit.material, r, nextFactor);
                 ray.type = 2;
             }
             else
             {
-                nextDir = SampleDiffuseMicrofacetBRDF(-ray.dirOS, hit.normalOS, hit.material.color, hit.material.metallicness, hit.material.reflectance, hit.material.roughness, r, nextFactor);
+                nextDir = SampleDiffuseMicrofacetBRDF(-ray.dirOS, hit.normalOS, hit.material, r, nextFactor);
                 ray.type = 1;
             }
             

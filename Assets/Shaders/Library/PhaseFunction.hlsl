@@ -25,21 +25,21 @@ float3 SphericalDirection(float sinTheta, float cosTheta, float phi, float3 x, f
 // direction: the ingoing direction.
 // g: the scattering coefficient g in range [-1, 1].
 // rngState: the random state
-float3 SamplePhaseFunctionHG(float3 direction, float g, inout uint rngState)
+float3 SamplePhaseFunctionHG(float3 direction, float g, float2 random)
 {
     float cosTheta;
     if (abs(g) < 1e-3)
     {
-        cosTheta = 1.0 - 2.0 * RandomValue(rngState);
+        cosTheta = 1.0 - 2.0 * random.x;
     }
     else
     {
-        float sqrTerm = (1.0 - g * g) / (1.0 - g + 2.0 * g * RandomValue(rngState));
+        float sqrTerm = (1.0 - g * g) / (1.0 - g + 2.0 * g * random.x);
         cosTheta = (1.0 + g * g - sqrTerm * sqrTerm) / (2.0 * g);
     }
     
     float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
-    float phi = 2.0 * PI * RandomValue(rngState);
+    float phi = 2.0 * PI * random.y;
     
     
     float3 v1, v2;

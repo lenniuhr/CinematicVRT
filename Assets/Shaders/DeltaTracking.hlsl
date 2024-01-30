@@ -12,6 +12,8 @@
 #include "Assets/Shaders/Library/TransferFunction.hlsl"
 #include "Assets/Shaders/Library/PhaseFunction.hlsl"
 
+#define MAX_BOUNCES 5
+
 TEXTURE2D(_CopyTex);
 TEXTURE2D(_Result);    
 TEXTURE2D(_PrevFrame);
@@ -32,6 +34,8 @@ float _SD;
 float _Blend;
 float _IncreaseThreshold;
 float _DivergeStrength;
+
+float _PTerminate;
 
 HitInfo DeltaTraceHomogenous(float3 position, Ray ray, inout uint rngState)
 {
@@ -105,18 +109,17 @@ HitInfo DeltaTrackOctree(float3 position, Ray ray, inout uint rngState)
     for (int i = 0; i < 300; i++)
     {
         float3 prevSamplePos = position + ray.dirOS * t;
-        float3 prevUv = GetVolumeCoords(prevSamplePos);
+        float3 prevUV = GetVolumeCoords(prevSamplePos);
         
         float octreeValue = GetOctreeValueById(octreeLevel, octreeId);
         float sigmaTCell = DensityToSigma(octreeValue);
-        sigmaTCell = max(sigmaTCell, 0.001);
         
         float meanFreePath = 1.0 / sigmaTCell;
         float cellSize = GetCellSize(octreeLevel);
         
         if (octreeLevel < 7 && meanFreePath < cellSize * _IncreaseThreshold)
         {
-            octreeId = GetChildOctreeId(octreeLevel, octreeId, prevUv);
+            octreeId = GetChildOctreeId(octreeLevel, octreeId, prevUV);
             octreeLevel++;
         }
         else if (octreeLevel > 0) // If octree level > 0 and level not increased
@@ -299,7 +302,7 @@ float3 Trace(float3 position, Ray ray, inout uint rngState)
     float3 throughput = 1;
     float3 incomingLight = 0;
     
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < MAX_BOUNCES; i++)
     {
         HitInfo hit = DeltaTrackOctree(position, ray, rngState);
         //HitInfo hit = DeltaTraceHeterogenous(position, ray, rngState);
@@ -311,6 +314,22 @@ float3 Trace(float3 position, Ray ray, inout uint rngState)
         
         if (hit.didHit)
         {
+            
+            if (false)
+            {
+                float3 originWS = mul(_VolumeLocalToWorldMatrix, float4(ray.originOS, 1)).xyz;
+                float3 hitWS = mul(_VolumeLocalToWorldMatrix, float4(hit.hitPointOS, 1)).xyz;
+                if (distance(originWS, hitWS) > _ViewParams.z)
+                {
+                    return 0;
+                }
+                else
+                {
+                    return 1;
+                }
+            }
+            
+            
             // Calculate surface/volume probability
             float3 uv = GetVolumeCoords(hit.hitPointOS);
             float density = SampleDensity(uv);
@@ -319,51 +338,70 @@ float3 Trace(float3 position, Ray ray, inout uint rngState)
             
             float pBRDF = a * (1 - exp(-_SD * length(hit.gradient)));
             
-            //pBRDF = _SD / 20;//
+            //pBRDF = _SD / 50;
             //pBRDF = 1;
             
             //return saturate(hit.normalOS);
+            float2 random = float2(RandomValue(rngState), RandomValue(rngState));
             
             if (pBRDF > RandomValue(rngState))
             {
-                if (dot(-ray.dirOS, hit.normalOS) < 0)
+                if (dot(ray.dirOS, hit.normalOS) > 0)
                 {
+                    position = hit.hitPointOS;
                     continue;
                 }
-                    
-                // Surface scattering
-                float3 r = float3(RandomValue(rngState), RandomValue(rngState), RandomValue(rngState));
+                //hit.material.roughness = 0.25;
                 
+                // Surface scattering
                 float3 nextFactor;
                 float3 nextDir;
-                if (RandomValue(rngState) > 2.0 / 3.0)
+                if (RandomValue(rngState) < 2.0 / 3.0)
                 {
-                    nextDir = SampleSpecularMicrofacetBRDF(normalize(-ray.dirOS), normalize(hit.normalOS), hit.material.color, 0.0, 1.0, hit.material.roughness, r, nextFactor);
-                    ray.type = 2;
-                    nextFactor *= 3;
+                    
+                    nextDir = SampleDiffuseMicrofacetBRDF(normalize(-ray.dirOS), normalize(hit.normalOS), hit.material, random, nextFactor);
+                    ray.type = 1;
+                    nextFactor *= 3.0 / 2.0;
                 }
                 else
                 {
-                    nextDir = SampleDiffuseMicrofacetBRDF(normalize(-ray.dirOS), normalize(hit.normalOS), hit.material.color, 0.0, 1.0, hit.material.roughness, r, nextFactor);
-                    ray.type = 1;
-                    nextFactor *= 1.5;
-
+                    nextDir = SampleSpecularMicrofacetBRDF(normalize(-ray.dirOS), normalize(hit.normalOS), hit.material, random, nextFactor);
+                    ray.type = 2;
+                    nextFactor *= 3.0;
                 }
                 position = hit.hitPointOS;
                 ray.originOS = hit.hitPointOS;
-                ray.dirOS = nextDir;
+                ray.dirOS = normalize(nextDir);
                 throughput *= nextFactor;
             }
             else
             {
                 // Volumetric scattering
-                float3 nextDir = SamplePhaseFunctionHG(ray.dirOS, _Blend, rngState);
-            
+                float3 nextDir = SamplePhaseFunctionHG(ray.dirOS, _Blend, random);
+                
+                float3 H = normalize(-ray.dirOS + nextDir);
+                
                 position = hit.hitPointOS;
                 ray.originOS = hit.hitPointOS;
-                ray.dirOS = nextDir;
+                ray.dirOS = normalize(nextDir);
                 ray.type = 1;
+                //throughput *= hit.material.color * saturate(abs(dot(-ray.dirOS, H))) * saturate(abs(dot(nextDir, H))) * PI;
                 throughput *= pow(hit.material.color, 0.5);
+            }
+                
+            // Russian roulette
+            if (i > 3)
+            {
+                float pExtinct = saturate(1.0 - max(max(throughput.r, throughput.g), throughput.b));
+                
+                if (RandomValue(rngState) < pExtinct)
+                {
+                    return 0;
+                }
+                else
+                {
+                    throughput /= (1.0 - pExtinct);
+                }
             }
         }
         else

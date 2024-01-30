@@ -4,8 +4,8 @@
 struct RayTracingMaterial
 {
     float3 color;
-    float metallicness;
     float roughness;
+    float metallic;
     float alpha;
     float reflectance;
 };

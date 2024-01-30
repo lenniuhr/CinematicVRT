@@ -27,9 +27,11 @@ float3 GaussianBlur(float2 uv)
     float3 color = 0;
     float totalWeight = 0;
     
-    for (int x = -_KernelRadius; x <= _KernelRadius; x++)
+    int kernelRadius = round(_Sigma * 5);
+    
+    for (int x = -kernelRadius; x <= kernelRadius; x++)
     {
-        for (int y = -_KernelRadius; y <= _KernelRadius; y++)
+        for (int y = -kernelRadius; y <= kernelRadius; y++)
         {
             float2 nUV = uv + _MainTex_TexelSize.xy * int2(x, y);
             
@@ -45,7 +47,7 @@ float3 GaussianBlur(float2 uv)
         }
     }
 
-    return color / totalWeight;
+    return pow(saturate(color / totalWeight), 1 / 2.2);
 }
 
 float3 BilateralBlur(float2 uv)

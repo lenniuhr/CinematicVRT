@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Albedo:
     serializedVersion: 2
-    key0: {r: 0.8352941, g: 0.8628674, b: 1, a: 1}
-    key1: {r: 0.8352941, g: 0.8628674, b: 1, a: 1}
+    key0: {r: 0.729, g: 0.7727097, b: 1, a: 1}
+    key1: {r: 0.7294118, g: 0.7725491, b: 1, a: 1}
     key2: {r: 0.9082389, g: 1, b: 0.8349056, a: 1}
     key3: {r: 1, g: 1, b: 1, a: 0}
     key4: {r: 1, g: 1, b: 1, a: 0}
@@ -89,7 +89,7 @@ MonoBehaviour:
     ctime6: 0
     ctime7: 0
     atime0: 0
-    atime1: 2313
+    atime1: 6614
     atime2: 11784
     atime3: 13708
     atime4: 25853
@@ -99,7 +99,7 @@ MonoBehaviour:
     m_Mode: 0
     m_NumColorKeys: 2
     m_NumAlphaKeys: 3
-  SigmaT: 132
+  SigmaT: 123
   MinDensity: -1000
   MaxDensity: 1000
   GradientShift: 0

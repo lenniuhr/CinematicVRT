@@ -3,6 +3,7 @@
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Assets/Shaders/Library/Common.hlsl"
+#include "Assets/Shaders/Library/RayTracingMaterial.hlsl"
 
 float3 fresnelSchlick(float cosTheta, float3 F0)
 {
@@ -18,9 +19,18 @@ float D_GGX(float NoH, float roughness)
     return alpha2 / (PI * b * b);
 }
 
+float G1_GGX(float NdotV, float roughness)
+{
+    float alpha = roughness * roughness;
+    float alpha2 = alpha * alpha;
+    
+    float denom = max(NdotV, 0.001) + sqrt(alpha2 + (1.0 - alpha2) * max(NdotV * NdotV, 0.001));
+    return (2 * NdotV) / denom;
+}
+
 float G1_GGX_Schlick(float NdotV, float roughness)
 {
-  //float r = roughness; // original
+    //float r = roughness; // original
     float r = 0.5 + 0.5 * roughness; // Disney remapping
     float k = (r * r) / 2.0;
     float denom = max(NdotV, 0.001) * (1.0 - k) + k;
@@ -35,17 +45,17 @@ float G_Smith(float NoV, float NoL, float roughness)
     return g1_l * g1_v;
 }
 
-float fresnelSchlick90(float cosTheta, float F0, float F90)
+float fresnelSchlick90(float cosTheta, float F0, float FD90)
 {
-    return F0 + (F90 - F0) * pow(1.0 - cosTheta, 5.0);
+    return F0 + (FD90 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
 float disneyDiffuseFactor(float NoV, float NoL, float VoH, float roughness)
 {
     float alpha = roughness * roughness;
-    float F90 = 0.5 + 2.0 * alpha * VoH * VoH;
-    float F_in = fresnelSchlick90(NoL, 1.0, F90);
-    float F_out = fresnelSchlick90(NoV, 1.0, F90);
+    float FD90 = 0.5 + 2.0 * alpha * VoH * VoH;
+    float F_in = fresnelSchlick90(NoL, 1.0, FD90);
+    float F_out = fresnelSchlick90(NoV, 1.0, FD90);
     return F_in * F_out;
 }
 
@@ -104,13 +114,12 @@ float3x3 getNormalSpace(in float3 normal)
     return float3x3(tangent, bitangent, normal);
 }
 
-float3 SampleSpecularMicrofacetBRDF(in float3 V, in float3 N, in float3 baseColor, in float metallicness,
-              in float fresnelReflect, in float roughness, in float3 random, out float3 nextFactor)
+float3 SampleSpecularMicrofacetBRDF(in float3 V, in float3 N, in RayTracingMaterial mat, in float2 random, out float3 nextFactor)
 {
     
     // important sample GGX
     // pdf = D * cos(theta) * sin(theta)
-    float a = roughness * roughness;
+    float a = mat.roughness * mat.roughness;
     float theta = acos(sqrt((1.0 - random.y) / (1.0 + (a * a - 1.0) * random.y)));
     float phi = 2.0 * PI * random.x;
     float3 localH = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
@@ -129,21 +138,20 @@ float3 SampleSpecularMicrofacetBRDF(in float3 V, in float3 N, in float3 baseColo
     
     // F0 for dielectics in range [0.0, 0.16] 
     // default FO is (0.16 * 0.5^2) = 0.04
-    float3 f0 = 0.16 * (fresnelReflect * fresnelReflect);
+    float3 f0 = 0.16 * (mat.reflectance * mat.reflectance);
     // in case of metals, baseColor contains F0
-    f0 = lerp(f0, baseColor, metallicness);
+    f0 = lerp(f0, mat.color, mat.metallic);
   
     // specular microfacet (cook-torrance) BRDF
     float3 F = fresnelSchlick(VoH, f0);
-    float D = D_GGX(NoH, roughness);
-    float G = G_Smith(NoV, NoL, roughness);
-    nextFactor = F * G * VoH / (max(NoH, 0.001) * max(NoV, 0.001));
+    float D = D_GGX(NoH, mat.roughness);
+    float G = G_Smith(NoV, NoL, mat.roughness);
+    nextFactor = F * G * VoH / max(NoH * NoV, 0.001);
     
     return L;
 }
 
-float3 SampleDiffuseMicrofacetBRDF(in float3 V, in float3 N, in float3 baseColor, in float metallicness,
-              in float fresnelReflect, in float roughness, in float3 random, out float3 nextFactor)
+float3 SampleDiffuseMicrofacetBRDF(in float3 V, in float3 N, in RayTracingMaterial mat, in float2 random, out float3 nextFactor)
 {
     // important sampling diffuse
       // pdf = cos(theta) * sin(theta) / PI
@@ -162,23 +170,17 @@ float3 SampleDiffuseMicrofacetBRDF(in float3 V, in float3 N, in float3 baseColor
       
       // F0 for dielectics in range [0.0, 0.16] 
       // default FO is (0.16 * 0.5^2) = 0.04
-    float3 f0 = 0.16 * (fresnelReflect * fresnelReflect);
+    float3 f0 = 0.16 * (mat.reflectance * mat.reflectance);
       // in case of metals, baseColor contains F0
-    f0 = lerp(f0, baseColor, metallicness);
+    f0 = lerp(f0, mat.color, mat.metallic);
     float3 F = fresnelSchlick(VoH, f0);
       
     //float3 notSpec = float3(1.0, 1.0, 1.0) - F; // if not specular, use as diffuse
     //notSpec *= (1.0 - metallicness); // no diffuse for metals
     
-    float disney = disneyDiffuseFactor(NoV, NoL, VoH, roughness);
+    float disney = disneyDiffuseFactor(NoV, NoL, VoH, mat.roughness);
     
-    nextFactor = disney * (1.0 - metallicness) * baseColor;// / (PI * 0.5);
-    
-    //nextFactor = (1.0 - metallicness) * baseColor;
-    
-    //nextFactor = baseColor * PI * cos(theta) * sin(theta);
-    //nextFactor = baseColor * sin(theta);
-    //nextFactor = baseColor;
+    nextFactor = disney * (1.0 - mat.metallic) * mat.color;
     
     return L;
 }

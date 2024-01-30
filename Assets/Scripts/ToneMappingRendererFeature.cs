@@ -23,6 +23,8 @@ public class ToneMappingRendererFeature : ScriptableRendererFeature
         public float ToeDenominator = 0.3f;
         [Range(0, 20)]
         public float LinearWhite = 11.2f;
+        [Range(0.9f, 1.0f)]
+        public float WhiteThreshold = 0.98f;
     }
 
     public Shader shader = default;
@@ -74,6 +76,8 @@ public class ToneMappingRendererFeature : ScriptableRendererFeature
             material.SetFloat("_ToeNumerator", settings.ToeNumerator);
             material.SetFloat("_ToeDenominator", settings.ToeDenominator);
             material.SetFloat("_LinearWhite", settings.LinearWhite);
+
+            material.SetFloat("_WhiteThreshold", settings.WhiteThreshold);
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)

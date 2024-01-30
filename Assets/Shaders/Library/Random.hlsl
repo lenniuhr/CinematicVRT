@@ -20,9 +20,10 @@ uint NextRandom(inout uint state)
     return result;
 }
 
+// Returns a random value in range [0, 1)
 float RandomValue(inout uint state)
 {
-    return NextRandom(state) / 4294967295.0; // 2^32 - 1
+    return NextRandom(state) / 4294967296.0; // 2^32
 } 
 
 // Random value in normal distribution (with mean=0 and sd=1)

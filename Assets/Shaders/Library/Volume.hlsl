@@ -37,11 +37,11 @@ void ClampBounds(float3 uv, inout float density)
         density = lerp(density, -1000, VectorMax(edge));
     }
     
-    /*
-    if (uv.z > 0.8)
+    
+    if (uv.x < 0.5)
     {
-        density = -1000;
-    }*/
+        //density = -1000;
+    }
     
     // Clamp cylinder
     float x = VectorMax(w);
@@ -94,7 +94,8 @@ void SampleGradientAndNormal(float3 uv, out float3 gradient, out float3 normal)
 
 float SampleDensity(float3 uv)
 {
-    //float density = tex3DTricubic(_VolumeTex, sampler_VolumeTex, uv, float3(512, 512, 460));
+    float3 dim = 1.0 / _VolumeTexelSize;
+    //float density = tex3DTricubic(_VolumeTex, sampler_VolumeTex, uv, dim);
     float density = SAMPLE_TEXTURE3D_LOD(_VolumeTex, sampler_VolumeTex, uv, 0).r;
     
     ClampBounds(uv, density);

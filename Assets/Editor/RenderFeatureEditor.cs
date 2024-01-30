@@ -19,8 +19,8 @@ public class RenderFeatureEditor : Editor
         switch (rf.renderMode)
         {
             case RenderModeRendererFeature.RenderMode.VOLUME:
-                rf.settings.StepSize = EditorGUILayout.Slider("Step Size", rf.settings.StepSize, 0.00001f, 0.001f);
-                rf.settings.Threshold = EditorGUILayout.Slider("Threshold", rf.settings.Threshold, 0, 1);
+                rf.settings.StepSize = EditorGUILayout.Slider("Step Size", rf.settings.StepSize, 0.00001f, 0.01f);
+                rf.settings.Threshold = EditorGUILayout.Slider("Threshold", rf.settings.Threshold, -1000, 3000);
                 rf.settings.Color = EditorGUILayout.ColorField("Color", rf.settings.Color);
                 break;
             case RenderModeRendererFeature.RenderMode.OCTREE:
@@ -43,9 +43,10 @@ public class RenderFeatureEditor : Editor
                 rf.deltaTrackingettings.Color = EditorGUILayout.ColorField("Color", rf.deltaTrackingettings.Color);
                 rf.deltaTrackingettings.Blend = EditorGUILayout.Slider("Blend", rf.deltaTrackingettings.Blend, -1, 1);
                 rf.deltaTrackingettings.IncreaseThreshold = EditorGUILayout.Slider("Increase Threshold", rf.deltaTrackingettings.IncreaseThreshold, 0, 1);
-                rf.deltaTrackingettings.SD = EditorGUILayout.Slider("SD", rf.deltaTrackingettings.SD, 0, 50);
+                rf.deltaTrackingettings.SD = EditorGUILayout.Slider("SD", rf.deltaTrackingettings.SD, 0, 100);
                 rf.deltaTrackingettings.DefocusStrength = EditorGUILayout.Slider("Diverge Strength", rf.deltaTrackingettings.DefocusStrength, 0.0f, 0.05f);
                 rf.deltaTrackingettings.FocusDistance = EditorGUILayout.Slider("Focus Distance", rf.deltaTrackingettings.FocusDistance, 0.1f, 10f);
+                rf.deltaTrackingettings.PTerminate = EditorGUILayout.Slider("Termination probability", rf.deltaTrackingettings.PTerminate, 0, 1);
                 break;
         }
 

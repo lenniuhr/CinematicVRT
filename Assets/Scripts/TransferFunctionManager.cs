@@ -11,6 +11,7 @@ public class TransferFunctionManager : MonoBehaviour
 
     private Texture2D albedoTexture;
     private Texture2D roughnessTexture;
+    private Texture2D metallicTexture;
     private Texture2D alphaTexture;
 
     public bool HasChanged()
@@ -57,12 +58,17 @@ public class TransferFunctionManager : MonoBehaviour
 
         GenerateTexture(ref albedoTexture, transferFunction.Albedo);
         GenerateTexture(ref roughnessTexture, transferFunction.Roughness);
+        GenerateTexture(ref metallicTexture, transferFunction.Metallic);
         GenerateTexture(ref alphaTexture, transferFunction.Alpha);
 
         Shader.SetGlobalTexture("_AlbedoTex", albedoTexture);
         Shader.SetGlobalTexture("_RoughnessTex", roughnessTexture);
+        Shader.SetGlobalTexture("_MetallicTex", metallicTexture);
         Shader.SetGlobalTexture("_AlphaTex", alphaTexture);
+
         Shader.SetGlobalFloat("_SigmaT", transferFunction.SigmaT);
+        Shader.SetGlobalFloat("_Reflectance", transferFunction.Reflectance);
+
         Shader.SetGlobalFloat("_MinDensity", transferFunction.MinDensity);
         Shader.SetGlobalFloat("_MaxDensity", transferFunction.MaxDensity);
         Shader.SetGlobalFloat("_GradientShift", transferFunction.GradientShift);

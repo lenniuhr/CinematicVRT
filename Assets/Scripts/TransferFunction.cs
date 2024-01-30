@@ -7,10 +7,13 @@ public class TransferFunction : ScriptableObject
 {
     public Gradient Albedo;
     public Gradient Roughness;
+    public Gradient Metallic;
     public Gradient Alpha;
 
     [Range(0, 1000)]
     public float SigmaT;
+    [Range(0, 1)]
+    public float Reflectance;
     public float MinDensity;
     public float MaxDensity;
     [Range(0, 0.3f)]

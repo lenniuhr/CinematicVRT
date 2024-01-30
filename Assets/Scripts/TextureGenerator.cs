@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -217,41 +218,14 @@ public class TextureGenerator : MonoBehaviour
     {
         Debug.Log($"Environment texture has dimension ({texture.width}, {texture.height})");
 
-        RenderTexture rt = new RenderTexture(texture.width, texture.height, 0, RenderTextureFormat.ARGBFloat);
+        RenderTexture rt = new RenderTexture(texture.width, texture.height, 0, RenderTextureFormat.ARGBFloat, 0);
+
         rt.Create();
         Graphics.SetRenderTarget(rt);
 
-        switch(filterMode)
-        {
-            case BlurFilterMode.Bilateral:
-                Graphics.Blit(texture, rt, material, (int)Pass.BilateralBlur);
-                break;
-            case BlurFilterMode.Gaussian:
-                Graphics.Blit(texture, rt, material, (int)Pass.GaussianBlur);
-                break;
-        }
-
-        Vector3 average = CalculateAverage(texture);
-        Debug.Log($"Average color: {average.x}, {average.y}, {average.z}");
-
-
-        Texture2D result = new Texture2D(rt.width, rt.height, TextureFormat.RGBAFloat, false);
-        RenderTexture.active = rt;
-        result.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
-        result.Apply();
-
-        Debug.Log($"Result texture has dimension ({result.width}, {result.height})");
-
-        Vector3 averageRT = CalculateAverage(result);
-        Debug.Log($"Average RT color: {averageRT.x}, {averageRT.y}, {averageRT.z}");
-
-
-        //Cubemap cubemap = new Cubemap(256, TextureFormat.RGBAFloat, false);
-
-        //Shader.SetGlobalTexture("_EnvironmentMap", rt);
-        //displayImage = rt;
-
-        //SaveTexture2D(renderTarget, texture.format, "blur");
+        Graphics.Blit(texture, rt, material, (int)Pass.GaussianBlur);
+        
+        SaveTexture2D(rt, TextureFormat.ARGB32, "blur");
     }
 
     public void SaveCTSlice(string filename)
@@ -268,37 +242,8 @@ public class TextureGenerator : MonoBehaviour
             {
                 Color color = current.GetPixel(x, y, Slice);
 
-                if (color.r > 0.5f && color.r < 0.7f) // Bone
-                {
-                    //color = Color.white;
-                }
-                else
-                {
-                    //color = Color.black;
-                }
+                color = new Color((color.r + 1024.0f) / 2048.0f, 0, 0);
 
-                //color = new Color(0.25f, 0.25f, 0.25f, 1);
-
-                /*if(color.r > 0.8f) // Metal
-                {
-                    color = Color.green;
-                }
-                else if (color.r > 0.5f && color.r < 0.6f) // Bone
-                {
-                    color = Color.red;
-                }
-                else if (color.r > 0.38f && color.r < 0.41f) // Vessels
-                {
-                    color = Color.yellow;
-                }
-                else if (color.r > 0.3f && color.r < 0.35f)
-                {
-                    color = Color.blue;
-                }
-                else if (color.r < 0.12f)
-                {
-                    color = Color.black;
-                }*/
                 //apply the color corresponding to the slice we are on, and the x and y pixel of that slice.
                 result.SetPixel(x, y, color);
             }
@@ -324,18 +269,6 @@ public class TextureGenerator : MonoBehaviour
 
         result.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
         result.Apply();
-
-        for (int x = 0; x < rt.width; x++)
-        {
-            for (int y = 0; y < rt.height; y++)
-            {
-                Color color = new Color();
-
-                //apply the color corresponding to the slice we are on, and the x and y pixel of that slice.
-                result.SetPixel(x, y, color);
-            }
-        }
-
 
         byte[] bytes = result.EncodeToPNG();
         string dirPath = Application.dataPath + "/Textures/";

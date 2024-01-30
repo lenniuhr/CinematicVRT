@@ -9,6 +9,8 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Runtime.InteropServices.WindowsRuntime;
+using UnityEngine.Rendering;
 
 public class DicomImporter
 {
@@ -90,6 +92,30 @@ public class DicomImporter
         return slices;
     }
 
+    public Texture2D SaveDicomSlice(string filePath)
+    {
+        DicomFile file = DicomFile.Open(filePath);
+
+        DicomImage images = new DicomImage(file.Dataset);
+
+        IImage image = images.RenderImage(0);
+        Debug.Log(image.Width + ", " + image.Height);
+
+        Texture2D texture = new Texture2D(image.Width, image.Height);
+
+        for(int x = 0; x < image.Width; x++)
+        {
+            for (int y = 0; y < image.Height; y++)
+            {
+                FellowOakDicom.Imaging.Color32 foColor = image.GetPixel(x, y);
+
+                texture.SetPixel(x, y, new Color(foColor.R / 255.0f, foColor.G / 255.0f, foColor.B / 255.0f));
+            }
+        }
+
+        return texture;
+    }
+
     private void ConvertDicomSlices(List<DicomSlice> slices, VolumeDataset dataset, out ushort[] textureData)
     {
         Debug.Log($"Converting {slices.Count} DICOM slices");
@@ -137,6 +163,8 @@ public class DicomImporter
         }
         dataset.minValue = min;
         dataset.maxValue = max;
+        dataset.clampRangeMin = min;
+        dataset.clampRangeMax = max;
     }
 
     private DicomSlice ReadDicomFile(string filePath)

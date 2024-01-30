@@ -5,6 +5,9 @@ using UnityEngine.Rendering;
 public class EnvironmentManager : MonoBehaviour
 {
     public Environment environment;
+    public Color environmentColor = Color.black;
+    [Range(0, 360)]
+    public float environmentRotation = 0;
     public bool showEnvironment = true;
 
     private bool hasChanged = false;
@@ -45,7 +48,9 @@ public class EnvironmentManager : MonoBehaviour
         Shader.SetGlobalTexture("_EnvironmentMap", environment.EnvironmentMap);
         Shader.SetGlobalTexture("_IrradianceMap", environment.IrradianceMap);
         Shader.SetGlobalTexture("_ReflectionMap", environment.ReflectionMap);
+        Shader.SetGlobalColor("_EnvironmentColor", environmentColor);
         Shader.SetGlobalInteger("_ShowEnvironment", showEnvironment ? 1 : 0);
+        Shader.SetGlobalFloat("_EnvironmentRotation", environmentRotation * Mathf.Deg2Rad);
     }
 
     public void GenerateIrradianceTexture()

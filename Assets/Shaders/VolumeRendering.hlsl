@@ -11,6 +11,7 @@
 #include "Assets/Shaders/Library/Classification.hlsl"
 #include "Assets/Shaders/Library/Octree.hlsl"
 #include "Assets/Shaders/Library/Environment.hlsl"
+#include "Assets/Shaders/Library/TransferFunction.hlsl"
 
 float _StepSize;
 float _Threshold;
@@ -53,7 +54,10 @@ HitInfo RaymarchCell(int level, int3 currentId, float3 position, float3 dirOS)
         {
             hitInfo.didHit = true;
             hitInfo.hitPointOS = position;
-            hitInfo.normalOS = SampleNormal(uv);
+            float3 gradient;
+            float3 normal;
+            SampleGradientAndNormal(uv, gradient, normal);
+            hitInfo.normalOS = normal;
             hitInfo.material.color = 0.5;
             
             return hitInfo;
@@ -117,13 +121,17 @@ HitInfo TraverseOctree(float3 position, Ray ray)
 
 float4 RayMarch(float3 position, Ray ray)
 {
-    float3 step = ray.dirOS * _StepSize;
+    HitInfo hitInfo = (HitInfo) 0;
     float4 output = 0;
+    
+    float tr = 1;
+    
+    float3 step = ray.dirOS * _StepSize;
 
     int steps = 0;
     
     [loop]
-    for (int i = 0; i < 720; i++)
+    for (int i = 0; i < 1000; i++)
     {
         position += step;
         steps++;
@@ -135,22 +143,40 @@ float4 RayMarch(float3 position, Ray ray)
         
         float3 uv = GetVolumeCoords(position);
         
-        float density = SampleDensity(uv);
+        float3 gradient;
+        float3 normal;
+        SampleGradientAndNormal(uv, gradient, normal);
         
-        if (density > _Threshold)
+        float density = SampleDensity(uv);
+        float sigma = DensityToSigma(density);
+        
+        hitInfo.material = SampleMaterial(density, gradient);
+        
+        float a = saturate(sigma * _StepSize);
+        
+        float3 normalWS = normalize(mul((float3x3) _VolumeLocalToWorldMatrix, normal));
+        float3 gi = SampleSH(normalWS);
+        float3 pbr = PBRLighting(hitInfo.material.color, hitInfo.material.roughness, hitInfo.material.metallic, -ray.dirWS, normalWS, gi);
+        
+        output.rgb += pbr * tr * a;
+        
+        tr *= (1.0 - a);
+        
+        /*if (density > _Threshold)
         {
-            half3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
+            hitInfo.didHit = true;
+            hitInfo.hitPointOS = position;
+            float3 gradient;
+            float3 normal;
+            SampleGradientAndNormal(uv, gradient, normal);
+            hitInfo.normalOS = normal;
             
-            float3 normalWS = normalize(mul((float3x3) _VolumeLocalToWorldMatrix, gradient));
-            
-            float3 gi = SampleSH(normalWS);
-            output.rgb = PBRLighting(0.5, 0, _Metallicness, -ray.dirWS, normalWS, gi);
-            output.a = 1;
+            output = float4(normal, 0.5);
             
             break;
-        }
+        }*/
     }
-    
+    output.a = 1 - tr;
     return output;
 }
 
@@ -161,20 +187,11 @@ float4 VolumeRenderingFragment(Varyings IN) : SV_TARGET
     float3 hitPoint;
     if (RayBoundingBoxOS(ray, hitPoint))
     {
-        HitInfo hitInfo = TraverseOctree(hitPoint, ray);
-        if (hitInfo.didHit)
-        {
-            float3 normalWS = normalize(mul((float3x3) _VolumeLocalToWorldMatrix, hitInfo.normalOS));
-            float3 gi = SampleSH(normalWS);
-            float4 output = 0;
-            output.rgb = PBRLighting(hitInfo.material.color, hitInfo.material.roughness, hitInfo.material.metallicness, -ray.dirWS, normalWS, gi);
-            output.a = 1;
-            
-            output.rgb = hitInfo.normalOS;
-            
-            return output;
-        }
-
+        float4 output = RayMarch(hitPoint, ray);
+        
+        float4 skyData = SampleEnvironment(ray.dirWS, 0);
+        
+        return output + (1.0 - output.a) * skyData;
     }
     float4 skyData = SampleEnvironment(ray.dirWS, 0);
     return skyData;

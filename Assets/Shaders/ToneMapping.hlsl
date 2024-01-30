@@ -4,6 +4,8 @@
 TEXTURE2D(_SourceTex);      SAMPLER(sampler_point_clamp);
 TEXTURE2D(_CopyTex);
 
+float _WhiteThreshold;
+
 float _ShoulderStrength;
 float _LinearStrength;
 float _LinearAngle;
@@ -21,15 +23,18 @@ float4 ToneMappingFragment(Varyings IN) : SV_TARGET
 {
     float4 color = SAMPLE_TEXTURE2D(_SourceTex, sampler_point_clamp, IN.uv);
     
-    float A = pow(_ShoulderStrength, 1 / 2.2);
-    float B = pow(_LinearStrength, 1 / 2.2);
-    float C = pow(_LinearAngle, 1 / 2.2);
-    float D = pow(_ToeStrength, 1 / 2.2);
-    float E = pow(_ToeNumerator, 1 / 2.2);
-    float F = pow(_ToeDenominator, 1 / 2.2);
-    float linearWhite = pow(_LinearWhite, 1 / 2.2);
+    if (color.r >= _WhiteThreshold && color.g >= _WhiteThreshold && color.b >= _WhiteThreshold)
+        return color;
     
-    float4 finalColor = Uncharted2Tonemapping(A, B, C, D, E, F, color) / Uncharted2Tonemapping(A, B, C, D, E, F, linearWhite);
+    float A = pow(_ShoulderStrength, 1 / 2.2); // 0.5
+    float B = pow(_LinearStrength, 1 / 2.2); // 0.58
+    float C = pow(_LinearAngle, 1 / 2.2); // 0.35
+    float D = pow(_ToeStrength, 1 / 2.2); // 0.48
+    float E = pow(_ToeNumerator, 1 / 2.2); // 0.12
+    float F = pow(_ToeDenominator, 1 / 2.2); // 0.58
+    float linearWhite = pow(_LinearWhite, 1 / 2.2); // 1.65
+    
+    float4 finalColor = Uncharted2Tonemapping(A, B, C, D, E, F, color) * linearWhite;
     return finalColor;
 }
 

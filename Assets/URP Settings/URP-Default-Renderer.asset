@@ -30,12 +30,12 @@ MonoBehaviour:
   renderMode: 3
   renderPassEvent: 300
   settings:
-    StepSize: 0.001
-    Threshold: 0.161
-    Color: {r: 0.9811321, g: 0.89690286, b: 0.6803133, a: 1}
+    StepSize: 0.00112
+    Threshold: 851
+    Color: {r: 0.7688679, g: 0.9798889, b: 1, a: 1}
   octreeSettings:
-    OctreeLevel: 5
-    Threshold: -160
+    OctreeLevel: 7
+    Threshold: 1978
   cinematicSettings:
     Threshold: 0.05
     Accumulate: 0
@@ -44,16 +44,17 @@ MonoBehaviour:
     DisneyD: 4.67
   deltaTrackingettings:
     SamplesPerPixel: 1
-    MaxSamples: 1000
+    MaxSamples: 3000
     Threshold: 92
     Accumulate: 1
-    Color: {r: 1, g: 0.382335, b: 0.376, a: 1}
+    Color: {r: 1, g: 1, b: 1, a: 1}
     SigmaT: 100
-    Blend: 0.1
+    Blend: 0.3
     IncreaseThreshold: 0.5
-    SD: 50
+    SD: 30
     DefocusStrength: 0
-    FocusDistance: 0.59
+    FocusDistance: 1.18
+    PTerminate: 0
 --- !u!114 &-3347501342411450359
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -96,7 +97,8 @@ MonoBehaviour:
     ToeStrength: 0.2
     ToeNumerator: 0.01
     ToeDenominator: 0.3
-    LinearWhite: 3
+    LinearWhite: 6.24
+    WhiteThreshold: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

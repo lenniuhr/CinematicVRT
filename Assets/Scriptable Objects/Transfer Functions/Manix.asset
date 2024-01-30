@@ -14,17 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Albedo:
     serializedVersion: 2
-    key0: {r: 0.794, g: 0.12386397, b: 0.15918337, a: 1}
-    key1: {r: 0.865, g: 0.488725, b: 0.272475, a: 1}
-    key2: {r: 0.972549, g: 0.50980395, b: 0.60867023, a: 1}
-    key3: {r: 0.97900003, g: 0.89731055, b: 0.78515804, a: 0}
+    key0: {r: 0.78, g: 0.061619993, b: 0.09728427, a: 1}
+    key1: {r: 0.9294118, g: 0.69803923, b: 0.37647063, a: 1}
+    key2: {r: 0.929, g: 0.69907254, b: 0.37717396, a: 1}
+    key3: {r: 0.98039216, g: 0.9040724, b: 0.8, a: 0}
     key4: {r: 1, g: 1, b: 1, a: 0}
     key5: {r: 1, g: 1, b: 1, a: 0}
     key6: {r: 1, g: 1, b: 1, a: 0}
     key7: {r: 0, g: 0, b: 0, a: 0}
-    ctime0: 6974
-    ctime1: 13949
-    ctime2: 19853
+    ctime0: 7816
+    ctime1: 12867
+    ctime2: 14670
     ctime3: 21765
     ctime4: 65535
     ctime5: 65535
@@ -61,7 +61,36 @@ MonoBehaviour:
     ctime7: 0
     atime0: 20442
     atime1: 22246
-    atime2: 65535
+    atime2: 22847
+    atime3: 0
+    atime4: 0
+    atime5: 0
+    atime6: 0
+    atime7: 0
+    m_Mode: 0
+    m_NumColorKeys: 2
+    m_NumAlphaKeys: 2
+  Metallic:
+    serializedVersion: 2
+    key0: {r: 1, g: 1, b: 1, a: 0}
+    key1: {r: 1, g: 1, b: 1, a: 0}
+    key2: {r: 0, g: 0, b: 0, a: 0}
+    key3: {r: 0, g: 0, b: 0, a: 0}
+    key4: {r: 0, g: 0, b: 0, a: 0}
+    key5: {r: 0, g: 0, b: 0, a: 0}
+    key6: {r: 0, g: 0, b: 0, a: 0}
+    key7: {r: 0, g: 0, b: 0, a: 0}
+    ctime0: 0
+    ctime1: 65535
+    ctime2: 0
+    ctime3: 0
+    ctime4: 0
+    ctime5: 0
+    ctime6: 0
+    ctime7: 0
+    atime0: 361
+    atime1: 65535
+    atime2: 0
     atime3: 0
     atime4: 0
     atime5: 0
@@ -74,7 +103,7 @@ MonoBehaviour:
     serializedVersion: 2
     key0: {r: 1, g: 1, b: 1, a: 0}
     key1: {r: 1, g: 1, b: 1, a: 0}
-    key2: {r: 0, g: 0, b: 0, a: 0}
+    key2: {r: 0, g: 0, b: 0, a: 1}
     key3: {r: 0, g: 0, b: 0, a: 1}
     key4: {r: 0, g: 0, b: 0, a: 1}
     key5: {r: 0, g: 0, b: 0, a: 1}
@@ -89,17 +118,18 @@ MonoBehaviour:
     ctime6: 0
     ctime7: 0
     atime0: 0
-    atime1: 5204
-    atime2: 7132
-    atime3: 13708
+    atime1: 7696
+    atime2: 25613
+    atime3: 25613
     atime4: 25853
     atime5: 25853
     atime6: 25853
     atime7: 0
     m_Mode: 0
     m_NumColorKeys: 2
-    m_NumAlphaKeys: 4
-  SigmaT: 1000
+    m_NumAlphaKeys: 3
+  SigmaT: 800
+  Reflectance: 1
   MinDensity: -100
   MaxDensity: 1000
   GradientShift: 0.15

@@ -1,3 +1,4 @@
+using FellowOakDicom;
 using System.Data;
 using System.IO;
 using UnityEditor;
@@ -21,6 +22,29 @@ public class CVRTEditorFunctions
         else
         {
             Debug.LogError("File doesn't exist: " + filePath);
+        }
+    }
+
+    [MenuItem("Tools/Import DICOM File")]
+    private static async void ImportDicomFile()
+    {
+        string startFolder = Path.GetDirectoryName(Application.dataPath) + "/Data";
+        string filePath = EditorUtility.OpenFilePanel("Import DICOM File", startFolder, "");
+
+        if (filePath.Length == 0) return;
+
+        DicomImporter importer = new DicomImporter(filePath);
+
+        Texture2D texture = importer.SaveDicomSlice(filePath);
+
+        if (texture != null)
+        {
+            byte[] bytes = texture.EncodeToPNG();
+
+            string path = "/Textures/DICOM/" + "dicom" + ".png";
+            File.WriteAllBytes(Application.dataPath + path, bytes);
+
+            Debug.Log("Created DICOM texture");
         }
     }
 
