@@ -1,19 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-4388415177794983309
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f3eb43ebc5d48fb429a8260f5384b531, type: 3}
-  m_Name: Display Texture
-  m_EditorClassIdentifier: 
-  m_Active: 0
-  renderPassEvent: 1000
 --- !u!114 &-3618375333725541457
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -55,26 +41,6 @@ MonoBehaviour:
     DefocusStrength: 0
     FocusDistance: 1.18
     PTerminate: 0
---- !u!114 &-3347501342411450359
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b5e7fe8a1209d764090aceb669033764, type: 3}
-  m_Name: BlurImageRendererFeature
-  m_EditorClassIdentifier: 
-  m_Active: 0
-  renderPassEvent: 1000
-  settings:
-    Texture: {fileID: 2800000, guid: 531d45b54fe476b4b89e655ee32a2e15, type: 3}
-    FilterMode: 0
-    KernelRadius: 2
-    Sigma: 2
-    SigmaR: 0.3
 --- !u!114 &-1549187087805807650
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -116,12 +82,9 @@ MonoBehaviour:
       type: 3}
   m_RendererFeatures:
   - {fileID: 6491367237887650202}
-  - {fileID: 3674167480162463381}
   - {fileID: -3618375333725541457}
   - {fileID: -1549187087805807650}
-  - {fileID: -3347501342411450359}
-  - {fileID: -4388415177794983309}
-  m_RendererFeatureMap: 9ae9e6301cf8155a952e604cdb43fd32afeb4011cef2c8cdde83b6348d2e80ea09186cd043498bd173ea9888a53719c3
+  m_RendererFeatureMap: 9ae9e6301cf8155aafeb4011cef2c8cdde83b6348d2e80ea
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 0}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
@@ -162,22 +125,6 @@ MonoBehaviour:
   m_ClusteredRendering: 0
   m_TileSize: 32
   m_IntermediateTextureMode: 0
---- !u!114 &3674167480162463381
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 24b5deebe6517a94396e5ff6fe0de629, type: 3}
-  m_Name: Ray Tracing
-  m_EditorClassIdentifier: 
-  m_Active: 0
-  renderPassEvent: 1000
-  settings:
-    MaxBounces: 7
 --- !u!114 &6491367237887650202
 MonoBehaviour:
   m_ObjectHideFlags: 0

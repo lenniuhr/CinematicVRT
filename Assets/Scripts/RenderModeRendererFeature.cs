@@ -1,3 +1,4 @@
+using FellowOakDicom.IO.Buffer;
 using System;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -441,6 +442,35 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             frameID = 0;
         }
 
+        private bool ResetFrame()
+        {
+            TransferFunctionManager tf = FindObjectOfType<TransferFunctionManager>();
+            if (tf != null && tf.HasChanged())
+            {
+                return true;
+            }
+
+            EnvironmentManager em = FindObjectOfType<EnvironmentManager>();
+            if (em != null && em.HasChanged())
+            {
+                return true;
+            }
+
+            VolumeBoundingBox vbb = FindObjectOfType<VolumeBoundingBox>();
+            if (vbb != null && vbb.HasChanged())
+            {
+                return true;
+            }
+
+            CameraUpdateChecker cam = FindObjectOfType<CameraUpdateChecker>();
+            if (cam != null && cam.HasChanged())
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
         {
             RenderTextureDescriptor desc = renderingData.cameraData.cameraTargetDescriptor;
@@ -461,16 +491,8 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             currentFrame.Init("_CurrentFrame");
             prevFrame.Init("_PrevFrame");
 
-            if(FindObjectOfType<TransferFunctionManager>().HasChanged()
-                || FindObjectOfType<EnvironmentManager>().HasChanged()
-                || FindObjectOfType<VolumeBoundingBox>().HasChanged())
+            if(ResetFrame())
             {
-                frameID = 0;
-            }
-
-            if (renderingData.cameraData.camera.transform.hasChanged)
-            {
-                renderingData.cameraData.camera.transform.hasChanged = false;
                 frameID = 0;
             }
 
