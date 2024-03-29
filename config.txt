@@ -1,0 +1,12 @@
+width 720
+height 720
+fov 45
+frameSize 1000
+rotation -90 0 0
+cutPosition 0 0 0
+cutNormal -1 0 0
+tricubic
+volume 0
+transferFunction 1
+environment 0
+showEnvironment

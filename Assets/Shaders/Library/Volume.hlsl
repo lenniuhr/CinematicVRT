@@ -4,6 +4,7 @@
 #include "Assets/Shaders/Library/Common.hlsl"
 #include "Assets/Shaders/Library/Tricubic.hlsl"
 #include "Assets/Shaders/Library/RayTracingMaterial.hlsl"
+#include "Assets/Shaders/Library/RayUtils.hlsl"
 
 // Variables set in VolumeBoundingBox.cs
 
@@ -20,6 +21,10 @@ float3 _VolumeSpacing;
 
 float4x4 _VolumeWorldToLocalMatrix;
 float4x4 _VolumeLocalToWorldMatrix;
+float4x4 _VolumeWorldToLocalNormalMatrix;
+
+float3 _CutPosition;
+float3 _CutNormal;
 
 void ClampBounds(float3 uv, inout float density)
 {
@@ -37,11 +42,36 @@ void ClampBounds(float3 uv, inout float density)
         density = lerp(density, -1000, VectorMax(edge));
     }
     
+    // Clamp plane
+#ifdef CUTTING_PLANE
     
-    if (uv.x < 0.5)
+    float3 plainPos = _CutPosition;
+    float3 plainNormal = normalize(_CutNormal);
+    
+    float c = plainNormal.x * plainPos.x + plainNormal.y * plainPos.y + plainNormal.z * plainPos.z;
+    
+    float3 pos = mul(_VolumeLocalToWorldMatrix, float4(VolumeCoordsToOS(uv), 1)).xyz;
+    
+    float r = (c - plainNormal.x * pos.x - plainNormal.y * pos.y - plainNormal.z * pos.z)
+    / (plainNormal.x * plainNormal.x + plainNormal.y * plainNormal.y + plainNormal.z * plainNormal.z);
+    
+    // Koordinatenform: (n1x1, n2x2, n3x3) = c
+    
+    // Gerade: g = (pos) + r * (normal)
+    
+    // Setze gerade in E ein
+    
+    // n1 * (pos.x + r * normal.x) + n2 * (pos.y + r * normal.y) + n3 * (pos.z + r * normal.z) = c
+    // n1*pos.x + n1*r*normal.x + n2*pos.y + n2*r*normal.y + n3*pos.z + n3*r*normal.z = c
+    // n1*r*normal.x + n2*r*normal.y + n3*r*normal.z = c - n1*pos.x - n2*pos.y - n3*pos.z
+    // r * (n1*normal.x + n2*normal.y + n3*normal.z) = c - n1*pos.x - n2*pos.y - n3*pos.z
+    // r = c - n1*pos.x - n2*pos.y - n3*pos.z / (n1*normal.x + n2*normal.y + n3*normal.z)
+    
+    if (r < 0)
     {
-        //density = -1000;
+        density = -1000;
     }
+#endif
     
     // Clamp cylinder
     float x = VectorMax(w);
@@ -94,9 +124,12 @@ void SampleGradientAndNormal(float3 uv, out float3 gradient, out float3 normal)
 
 float SampleDensity(float3 uv)
 {
+#ifdef TRICUBIC_SAMPLING
     float3 dim = 1.0 / _VolumeTexelSize;
-    //float density = tex3DTricubic(_VolumeTex, sampler_VolumeTex, uv, dim);
+    float density = tex3DTricubic(_VolumeTex, sampler_VolumeTex, uv, dim);
+#else
     float density = SAMPLE_TEXTURE3D_LOD(_VolumeTex, sampler_VolumeTex, uv, 0).r;
+#endif
     
     ClampBounds(uv, density);
     

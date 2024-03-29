@@ -1,6 +1,8 @@
 #pragma kernel GenerateBase
 #pragma kernel GenerateLevel
 
+#pragma multi_compile _ CUTTING_PLANE
+
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Assets/Shaders/Library/OctreeUtils.hlsl"
 #include "Assets/Shaders/Library/Common.hlsl"

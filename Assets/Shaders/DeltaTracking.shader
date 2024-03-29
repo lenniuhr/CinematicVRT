@@ -40,6 +40,8 @@ Shader "Hidden/DeltaTracking"
             Name "Delta Tracking"
 
             HLSLPROGRAM
+            #pragma multi_compile _ TRICUBIC_SAMPLING
+            #pragma multi_compile _ CUTTING_PLANE
             #pragma vertex DefaultVertex
             #pragma fragment DeltaTrackingFragment
             #include "Assets/Shaders/Library/DefaultVertex.hlsl"

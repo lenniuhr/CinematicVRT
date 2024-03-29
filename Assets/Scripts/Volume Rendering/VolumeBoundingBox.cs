@@ -76,6 +76,7 @@ public class VolumeBoundingBox : MonoBehaviour
         Shader.SetGlobalVector("_VolumeSpacing", normalizedSpacing);
         Shader.SetGlobalMatrix("_VolumeWorldToLocalMatrix", transform.worldToLocalMatrix);
         Shader.SetGlobalMatrix("_VolumeLocalToWorldMatrix", transform.localToWorldMatrix);
+        Shader.SetGlobalMatrix("_VolumeWorldToLocalNormalMatrix", transform.worldToLocalMatrix.transpose.inverse);
     }
 
     public Texture3D GetDataTexture()

@@ -129,7 +129,7 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 3
   SigmaT: 800
-  Reflectance: 1
+  Reflectance: 0.8
   MinDensity: -100
   MaxDensity: 1000
   GradientShift: 0.15

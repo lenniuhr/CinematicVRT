@@ -42,6 +42,11 @@ float3 GetVolumeCoords(float3 positionOS)
     return InverseLerp(BOX_MIN, BOX_MAX, positionOS);
 }
 
+float3 VolumeCoordsToOS(float3 uv)
+{
+    return lerp(BOX_MIN, BOX_MAX, uv);
+}
+
 Ray GetRay(float2 screenUV, float4x4 worldToObjectMat, float2 pixelOffset)
 {
     float3 viewPointLocal = float3(screenUV - 0.5 + pixelOffset, 1) * _ViewParams;

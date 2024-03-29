@@ -56,7 +56,7 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
     public Settings settings = new Settings();
     public OctreeSettings octreeSettings = new OctreeSettings();
     public CinematicSettings cinematicSettings = new CinematicSettings();
-    public DeltaTrackingSettings deltaTrackingettings = new DeltaTrackingSettings();
+    public DeltaTrackingSettings deltaTrackingSettings = new DeltaTrackingSettings();
 
     public enum RenderMode
     {
@@ -78,6 +78,23 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
         }
     }
 
+    public void ResetFrameId()
+    {
+        if (m_RenderPass != null && m_RenderPass is DeltaTrackingRenderPass)
+        {
+            ((DeltaTrackingRenderPass)m_RenderPass).ResetFrameId();
+        }
+    }
+
+    public int GetFrameId()
+    {
+        if (m_RenderPass != null && m_RenderPass is DeltaTrackingRenderPass)
+        {
+            return ((DeltaTrackingRenderPass)m_RenderPass).GetFrameId();
+        }
+        return -1;
+    }
+
     public override void Create()
     {
         CleanUp();
@@ -94,7 +111,7 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
                 m_RenderPass = new CinematicRenderPass(cinematicSettings);
                 break;
             case RenderMode.DELTATRACKING:
-                m_RenderPass = new DeltaTrackingRenderPass(deltaTrackingettings);
+                m_RenderPass = new DeltaTrackingRenderPass(deltaTrackingSettings);
                 break;
         }
         m_RenderPass.renderPassEvent = renderPassEvent;
@@ -423,6 +440,16 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             DeltaTracking
         }
 
+        public int GetFrameId()
+        {
+            return frameID;
+        }
+
+        public void ResetFrameId()
+        {
+            frameID = 0;
+        }
+
         public DeltaTrackingRenderPass(DeltaTrackingSettings settings)
         {
             this.material = CoreUtils.CreateEngineMaterial("Hidden/DeltaTracking");
@@ -442,7 +469,7 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             frameID = 0;
         }
 
-        private bool ResetFrame()
+        private bool ResetFrame(Camera cam)
         {
             TransferFunctionManager tf = FindObjectOfType<TransferFunctionManager>();
             if (tf != null && tf.HasChanged())
@@ -462,11 +489,20 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
                 return true;
             }
 
-            CameraUpdateChecker cam = FindObjectOfType<CameraUpdateChecker>();
-            if (cam != null && cam.HasChanged())
+#if UNITY_EDITOR
+            // For scene view
+            if (cam.transform.hasChanged)
+            {
+                cam.transform.hasChanged = false;
+                return true;
+            }
+#else
+            CameraUpdateChecker camUpdateChecker = FindObjectOfType<CameraUpdateChecker>();
+            if (camUpdateChecker != null && camUpdateChecker.HasChanged())
             {
                 return true;
             }
+#endif
 
             return false;
         }
@@ -491,19 +527,13 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             currentFrame.Init("_CurrentFrame");
             prevFrame.Init("_PrevFrame");
 
-            if(ResetFrame())
+            if(ResetFrame(renderingData.cameraData.camera))
             {
+                resultTexture.Release();
+                resultTexture = new RenderTexture(desc);
+                resultTexture.Create();
                 frameID = 0;
             }
-
-            //renderingData.cameraData.camera
-
-            //Debug.Log(Camera.current.name);
-
-            //Debug.Log(renderingData.cameraData.camera.name);
-
-            //Debug.Log(desc.width + ", " + desc.height);
-
 
             cmd.GetTemporaryRT(currentFrame.id, desc, FilterMode.Point);
             cmd.GetTemporaryRT(prevFrame.id, desc, FilterMode.Point);
@@ -531,6 +561,7 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             // Send data to shader
             material.SetVector("_ViewParams", new Vector3(planeWidth, planeHeight, focusDistance));
             material.SetMatrix("_CamLocalToWorldMatrix", cam.transform.localToWorldMatrix);
+            //material.EnableKeyword("TRICUBIC_SAMPLING");
         }
 
         void Draw(CommandBuffer cmd, RenderTargetIdentifier depthSource, RenderTargetIdentifier destination, Pass pass)
@@ -583,7 +614,7 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
 
                         frameID++;
 
-                        if(frameID % 100 == 0)
+                        if (frameID % 100 == 0)
                         {
                             Debug.Log("Rendered " + frameID + " frames");
                         }

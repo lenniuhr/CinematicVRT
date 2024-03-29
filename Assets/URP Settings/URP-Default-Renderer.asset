@@ -21,26 +21,26 @@ MonoBehaviour:
     Color: {r: 0.7688679, g: 0.9798889, b: 1, a: 1}
   octreeSettings:
     OctreeLevel: 7
-    Threshold: 1978
+    Threshold: 667
   cinematicSettings:
     Threshold: 0.05
     Accumulate: 0
     Color: {r: 0.84900004, g: 0.75132555, b: 0.601941, a: 1}
     SSSRadius: 0.0302
     DisneyD: 4.67
-  deltaTrackingettings:
+  deltaTrackingSettings:
     SamplesPerPixel: 1
-    MaxSamples: 3000
-    Threshold: 92
+    MaxSamples: 1001
+    Threshold: 0.05
     Accumulate: 1
     Color: {r: 1, g: 1, b: 1, a: 1}
-    SigmaT: 100
-    Blend: 0.3
+    SigmaT: 1
+    Blend: 0
     IncreaseThreshold: 0.5
-    SD: 30
+    SD: 15
     DefocusStrength: 0
-    FocusDistance: 1.18
-    PTerminate: 0
+    FocusDistance: 1
+    PTerminate: 0.3
 --- !u!114 &-1549187087805807650
 MonoBehaviour:
   m_ObjectHideFlags: 0

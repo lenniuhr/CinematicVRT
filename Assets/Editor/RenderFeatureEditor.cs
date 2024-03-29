@@ -35,18 +35,18 @@ public class RenderFeatureEditor : Editor
                 rf.cinematicSettings.DisneyD = EditorGUILayout.FloatField("Disney D", rf.cinematicSettings.DisneyD);
                 break;
             case RenderModeRendererFeature.RenderMode.DELTATRACKING:
-                rf.deltaTrackingettings.SamplesPerPixel = EditorGUILayout.IntSlider("Samples Per Pixel", rf.deltaTrackingettings.SamplesPerPixel, 1, 4);
-                rf.deltaTrackingettings.MaxSamples = EditorGUILayout.IntSlider("Max Samples", rf.deltaTrackingettings.MaxSamples, 1, 30000);
-                rf.deltaTrackingettings.Threshold = EditorGUILayout.Slider("Threshold", rf.deltaTrackingettings.Threshold, 0, 255);
-                rf.deltaTrackingettings.SigmaT = EditorGUILayout.FloatField("Sigma T", rf.deltaTrackingettings.SigmaT);
-                rf.deltaTrackingettings.Accumulate = EditorGUILayout.Toggle("Accumulate", rf.deltaTrackingettings.Accumulate);
-                rf.deltaTrackingettings.Color = EditorGUILayout.ColorField("Color", rf.deltaTrackingettings.Color);
-                rf.deltaTrackingettings.Blend = EditorGUILayout.Slider("Blend", rf.deltaTrackingettings.Blend, -1, 1);
-                rf.deltaTrackingettings.IncreaseThreshold = EditorGUILayout.Slider("Increase Threshold", rf.deltaTrackingettings.IncreaseThreshold, 0, 1);
-                rf.deltaTrackingettings.SD = EditorGUILayout.Slider("SD", rf.deltaTrackingettings.SD, 0, 100);
-                rf.deltaTrackingettings.DefocusStrength = EditorGUILayout.Slider("Diverge Strength", rf.deltaTrackingettings.DefocusStrength, 0.0f, 0.05f);
-                rf.deltaTrackingettings.FocusDistance = EditorGUILayout.Slider("Focus Distance", rf.deltaTrackingettings.FocusDistance, 0.1f, 10f);
-                rf.deltaTrackingettings.PTerminate = EditorGUILayout.Slider("Termination probability", rf.deltaTrackingettings.PTerminate, 0, 1);
+                rf.deltaTrackingSettings.SamplesPerPixel = EditorGUILayout.IntSlider("Samples Per Pixel", rf.deltaTrackingSettings.SamplesPerPixel, 1, 4);
+                rf.deltaTrackingSettings.MaxSamples = EditorGUILayout.IntSlider("Max Samples", rf.deltaTrackingSettings.MaxSamples, 1, 30000);
+                rf.deltaTrackingSettings.Threshold = EditorGUILayout.Slider("Threshold", rf.deltaTrackingSettings.Threshold, 0, 255);
+                rf.deltaTrackingSettings.SigmaT = EditorGUILayout.FloatField("Sigma T", rf.deltaTrackingSettings.SigmaT);
+                rf.deltaTrackingSettings.Accumulate = EditorGUILayout.Toggle("Accumulate", rf.deltaTrackingSettings.Accumulate);
+                rf.deltaTrackingSettings.Color = EditorGUILayout.ColorField("Color", rf.deltaTrackingSettings.Color);
+                rf.deltaTrackingSettings.Blend = EditorGUILayout.Slider("Blend", rf.deltaTrackingSettings.Blend, -1, 1);
+                rf.deltaTrackingSettings.IncreaseThreshold = EditorGUILayout.Slider("Increase Threshold", rf.deltaTrackingSettings.IncreaseThreshold, 0, 1);
+                rf.deltaTrackingSettings.SD = EditorGUILayout.Slider("SD", rf.deltaTrackingSettings.SD, 0, 100);
+                rf.deltaTrackingSettings.DefocusStrength = EditorGUILayout.Slider("Diverge Strength", rf.deltaTrackingSettings.DefocusStrength, 0.0f, 0.05f);
+                rf.deltaTrackingSettings.FocusDistance = EditorGUILayout.Slider("Focus Distance", rf.deltaTrackingSettings.FocusDistance, 0.1f, 10f);
+                rf.deltaTrackingSettings.PTerminate = EditorGUILayout.Slider("Termination probability", rf.deltaTrackingSettings.PTerminate, 0, 1);
                 break;
         }
 
