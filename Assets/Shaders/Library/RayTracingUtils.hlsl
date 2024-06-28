@@ -21,19 +21,19 @@ float RandomValue(inout uint state)
     return NextRandom(state) / 4294967295.0; // 2^32 - 1
 }
 
-			// Random value in normal distribution (with mean=0 and sd=1)
+// Random value in normal distribution (with mean=0 and sd=1)
 float RandomValueNormalDistribution(inout uint state)
 {
-				// Thanks to https://stackoverflow.com/a/6178290
+	// Thanks to https://stackoverflow.com/a/6178290
     float theta = 2 * 3.1415926 * RandomValue(state);
     float rho = sqrt(-2 * log(RandomValue(state)));
     return rho * cos(theta);
 }
 
-			// Calculate a random direction
+// Calculate a random direction
 float3 RandomDirection(inout uint state)
 {
-				// Thanks to https://math.stackexchange.com/a/1585996
+	// Thanks to https://math.stackexchange.com/a/1585996
     float x = RandomValueNormalDistribution(state);
     float y = RandomValueNormalDistribution(state);
     float z = RandomValueNormalDistribution(state);

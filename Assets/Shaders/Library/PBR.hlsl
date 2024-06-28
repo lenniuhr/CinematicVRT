@@ -66,25 +66,25 @@ float3 MicrofacetBRDF(in float3 L, in float3 V, in float3 N,
      
     float3 H = normalize(V + L); // half vector
 
-  // all required dot products
+    // all required dot products
     float NoV = clamp(dot(N, V), 0.0, 1.0);
     float NoL = clamp(dot(N, L), 0.0, 1.0);
     float NoH = clamp(dot(N, H), 0.0, 1.0);
     float VoH = clamp(dot(V, H), 0.0, 1.0);
     
-  // F0 for dielectics in range [0.0, 0.16] 
-  // default FO is (0.16 * 0.5^2) = 0.04
+    // F0 for dielectics in range [0.0, 0.16] 
+    // default FO is (0.16 * 0.5^2) = 0.04
     float3 f0 = 0.16 * (fresnelReflect * fresnelReflect) * float3(1, 1, 1);
-  // in case of metals, baseColor contains F0
+    // in case of metals, baseColor contains F0
     f0 = lerp(f0, baseColor, metallicness);
 
-  // specular microfacet (cook-torrance) BRDF
+    // specular microfacet (cook-torrance) BRDF
     float3 F = fresnelSchlick(VoH, f0);
     float D = D_GGX(NoH, roughness);
     float G = G_Smith(NoV, NoL, roughness);
     float3 spec = (F * D * G) / (4.0 * max(NoV, 0.001) * max(NoL, 0.001));
     
-  // diffuse
+    // diffuse
     float3 notSpec = float3(1, 1, 1) - F; // if not specular, use as diffuse
     notSpec *= (1.0 - metallicness); // no diffuse for metals
     
@@ -154,24 +154,24 @@ float3 SampleSpecularMicrofacetBRDF(in float3 V, in float3 N, in RayTracingMater
 float3 SampleDiffuseMicrofacetBRDF(in float3 V, in float3 N, in RayTracingMaterial mat, in float2 random, out float3 nextFactor)
 {
     // important sampling diffuse
-      // pdf = cos(theta) * sin(theta) / PI
+    // pdf = cos(theta) * sin(theta) / PI
     float theta = asin(sqrt(random.y));
     float phi = 2.0 * PI * random.x;
     
-      // sampled indirect diffuse direction in normal space
+    // sampled indirect diffuse direction in normal space
     float3 localDiffuseDir = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
     float3 L = mul(getNormalSpace(N), localDiffuseDir);
       
-       // half vector
+    // half vector
     float3 H = normalize(V + L);
     float VoH = clamp(dot(V, H), 0.0, 1.0);
     float NoV = clamp(dot(N, V), 0.0, 1.0);
     float NoL = clamp(dot(N, L), 0.0, 1.0);
       
-      // F0 for dielectics in range [0.0, 0.16] 
-      // default FO is (0.16 * 0.5^2) = 0.04
+    // F0 for dielectics in range [0.0, 0.16] 
+    // default FO is (0.16 * 0.5^2) = 0.04
     float3 f0 = 0.16 * (mat.reflectance * mat.reflectance);
-      // in case of metals, baseColor contains F0
+    // in case of metals, baseColor contains F0
     f0 = lerp(f0, mat.color, mat.metallic);
     float3 F = fresnelSchlick(VoH, f0);
       

@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9ba061e49dc190c489f9c033f61da725, type: 3}
   m_Name: Render Mode
   m_EditorClassIdentifier: 
-  m_Active: 0
-  renderMode: 0
-  renderPassEvent: 350
+  m_Active: 1
+  renderMode: 2
+  renderPassEvent: 300
   settings:
     StepSize: 0.001
     Threshold: 70
@@ -43,7 +43,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de0cf10828903f448bff25217498b749, type: 3}
   m_Name: Tone Mapping
   m_EditorClassIdentifier: 
-  m_Active: 0
+  m_Active: 1
   shader: {fileID: 4800000, guid: 036d0a180520f334c8157e50051e0868, type: 3}
   renderPassEvent: 1000
   settings:

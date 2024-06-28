@@ -11,7 +11,7 @@ public class TransferFunction : ScriptableObject
     public Gradient Alpha;
 
     [Range(0, 1000)]
-    public float SigmaT;
+    public float SigmaS;
     [Range(0, 1)]
     public float Reflectance;
     public float MinDensity;

@@ -57,43 +57,9 @@ public class OctreeGenerator : MonoBehaviour
         m_MainKernel = computeShader.FindKernel("GenerateLevel");
 
         computeShader.SetTextureFromGlobal(m_BaseKernel, "_VolumeTex", "_VolumeTex");
-        //computeShader.SetVector("_VolumeTexelSize", new Vector3(1.0f / dataTexture.width, 1.0f / dataTexture.height, 1.0f / dataTexture.depth));
 
         m_Initialized = true;
-
         //Debug.Log($"Volume Texture Texelsize: ({1 / dataTexture.width}, {1 / dataTexture.height}, {1 / dataTexture.depth})...");
-
-        //TestSampleCell(OctreeLevel, new Vector3(63, 63, 63), new Vector3(1.0f / dataTexture.width, 1.0f / dataTexture.height, 1.0f / dataTexture.depth), 
-        //    new Vector3Int(dataTexture.width, dataTexture.height, dataTexture.depth));
-    }
-
-    private void TestSampleCell(int level, Vector3 id, Vector3 texelSize, Vector3Int pixelSize)
-    {
-        int dim = Mathf.CeilToInt(Mathf.Pow(2, level));
-
-        Vector3 cellMin = id / dim;
-        Vector3 cellMax = (id + Vector3.one) / dim;
-
-        Debug.Log("Cell min:" + cellMin);
-        Debug.Log("Pixel min: " + Mathf.FloorToInt(cellMin.x / texelSize.x) + ", " + Mathf.FloorToInt(cellMin.y / texelSize.y) + ", " + Mathf.FloorToInt(cellMin.z / texelSize.z));
-        Debug.Log("Pixel max: " + Mathf.FloorToInt(cellMax.x / texelSize.x) + ", " + Mathf.FloorToInt(cellMax.y / texelSize.y) + ", " + Mathf.FloorToInt(cellMax.z / texelSize.z));
-
-        int stepsX = Mathf.CeilToInt((cellMax.x - cellMin.x) / texelSize.x);
-        int stepsY = Mathf.CeilToInt((cellMax.y - cellMin.y) / texelSize.y);
-        int stepsZ = Mathf.CeilToInt((cellMax.z - cellMin.z) / texelSize.z);
-
-        Debug.Log($"Sample steps: ({stepsX}, {stepsY}, {stepsZ})");
-
-        for (int x = 0; x < stepsX; x++)
-        {
-            for (int y = 0; y < stepsY; y++)
-            {
-                for (int z = 0; z < stepsZ; z++)
-                {
-                    //Debug.Log("Sample at " + (cellMin + new Vector3(texelSize.x * x, texelSize.y * y, texelSize.z * z)));
-                }
-            }
-        }
     }
 
     private int GetOctreeBufferSize()

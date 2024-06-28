@@ -1,4 +1,3 @@
-using FellowOakDicom.IO.Buffer;
 using System;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -108,10 +107,6 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
         if(renderingData.cameraData.camera.name == "SceneCamera" || renderingData.cameraData.camera.name == "Main Camera")
         {
             renderer.EnqueuePass(m_RenderPass);
-        }
-        else
-        {
-            //Debug.Log("Skipped render pass for " + renderingData.cameraData.camera.name);
         }
     }
 
@@ -276,7 +271,6 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
 
         float focusDistance;
 
-
         enum Pass
         {
             Accumulate,
@@ -403,7 +397,6 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
             // Send data to shader
             material.SetVector("_ViewParams", new Vector3(planeWidth, planeHeight, focusDistance));
             material.SetMatrix("_CamLocalToWorldMatrix", cam.transform.localToWorldMatrix);
-            //material.EnableKeyword("TRICUBIC_SAMPLING");
         }
 
         void Draw(CommandBuffer cmd, RenderTargetIdentifier depthSource, RenderTargetIdentifier destination, Pass pass)
@@ -462,13 +455,11 @@ public class RenderModeRendererFeature : ScriptableRendererFeature
                         }
                     }
                 }
-
                 // Copy "resultTexture" to source
                 cmd.SetRenderTarget(sourceID);
                 cmd.SetGlobalTexture("_CopyTex", resultTexture);
                 Draw(cmd, Pass.Copy);
             }
-
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }

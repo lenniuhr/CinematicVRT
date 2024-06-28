@@ -26,7 +26,7 @@ public class CVRTEditorFunctions
     }
 
     [MenuItem("Tools/Import DICOM File")]
-    private static async void ImportDicomFile()
+    private static void ImportDicomFile()
     {
         string startFolder = Path.GetDirectoryName(Application.dataPath) + "/Data";
         string filePath = EditorUtility.OpenFilePanel("Import DICOM File", startFolder, "");

@@ -128,7 +128,7 @@ MonoBehaviour:
     m_Mode: 0
     m_NumColorKeys: 2
     m_NumAlphaKeys: 3
-  SigmaT: 800
+  SigmaS: 800
   Reflectance: 0.8
   MinDensity: -100
   MaxDensity: 1000

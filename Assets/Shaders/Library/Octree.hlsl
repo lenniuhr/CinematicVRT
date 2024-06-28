@@ -264,8 +264,6 @@ bool RayOctree(float3 dirOS, int level, inout int3 id, inout float3 position)
         position = position + dirOS * t.z;
     }
     
-    
-    
     if (t.x < 0 || t.y < 0 || t.z < 0)
         return false;
     

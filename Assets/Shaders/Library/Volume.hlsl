@@ -10,7 +10,6 @@
 
 SAMPLER(sampler_point_clamp);
 TEXTURE3D(_VolumeTex);  SAMPLER(sampler_VolumeTex);
-TEXTURE3D(_GradientTex);  SAMPLER(sampler_GradientTex);
 
 float3 _VolumeTexelSize;
 
@@ -143,31 +142,6 @@ float SampleDensityPoint(float3 uv)
     ClampBounds(uv, density);
     
     return density;
-}
-
-float3 SampleGradient(float3 uv)
-{
-    if (uv.x < 0.0 || uv.y < 0.0 || uv.z < 0.0 || uv.x > 1.0 || uv.y > 1.0 || uv.z > 1.0)
-    {
-        return 0;
-    }
-    
-    //float3 gradient = tex3DTricubic(_GradientTex, sampler_GradientTex, uv, float3(512, 512, 460)).xyz * 2 - 1;
-    float3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
-    return gradient;
-}
-
-float3 SampleNormal(float3 uv)
-{
-    if (uv.x < 0.0 || uv.y < 0.0 || uv.z < 0.0 || uv.x > 1.0 || uv.y > 1.0 || uv.z > 1.0)
-    {
-        return 0;
-    }
-    
-    //float3 gradient = SAMPLE_TEXTURE3D_LOD(_GradientTex, sampler_GradientTex, uv, 0).xyz * 2 - 1;
-    float3 gradient = tex3DTricubic(_GradientTex, sampler_GradientTex, uv, float3(512, 512, 460)).xyz * 2 - 1;
-    
-    return normalize(gradient);
 }
 
 float3 CalculateGradient(float3 uv)

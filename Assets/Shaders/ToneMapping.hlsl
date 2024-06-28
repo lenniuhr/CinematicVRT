@@ -5,7 +5,6 @@ TEXTURE2D(_SourceTex);      SAMPLER(sampler_point_clamp);
 TEXTURE2D(_CopyTex);
 
 float _WhiteThreshold;
-
 float _ShoulderStrength;
 float _LinearStrength;
 float _LinearAngle;

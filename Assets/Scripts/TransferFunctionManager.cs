@@ -1,6 +1,4 @@
-using JetBrains.Annotations;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 [ExecuteInEditMode]
 public class TransferFunctionManager : MonoBehaviour
@@ -29,11 +27,6 @@ public class TransferFunctionManager : MonoBehaviour
     private void OnEnable()
     {
         UpdateTransferTex();
-    }
-
-    private void OnDisable()
-    {
-
     }
 
     private void Update()
@@ -68,7 +61,7 @@ public class TransferFunctionManager : MonoBehaviour
         Shader.SetGlobalTexture("_MetallicTex", metallicTexture);
         Shader.SetGlobalTexture("_AlphaTex", alphaTexture);
 
-        Shader.SetGlobalFloat("_SigmaT", transferFunction.SigmaT);
+        Shader.SetGlobalFloat("_SigmaS", transferFunction.SigmaS);
         Shader.SetGlobalFloat("_Reflectance", transferFunction.Reflectance);
 
         Shader.SetGlobalFloat("_MinDensity", transferFunction.MinDensity);
@@ -97,6 +90,7 @@ public class TransferFunctionManager : MonoBehaviour
         texture.Apply(false);
     }
 
+    // Function for exporting the transfer function as a texture
     public Texture2D GenerateCombinedTexture(float rangeMin, float rangeMax)
     {
 
