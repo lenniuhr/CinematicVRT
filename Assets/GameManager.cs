@@ -3,7 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using static UnityEngine.Rendering.DebugUI;
 
@@ -34,6 +36,7 @@ public class GameManager : MonoBehaviour
     private bool cuttingPlane = false;
     private bool tricubic;
 
+    private string filePath = null; //"C:/Users/lenna/Desktop/Projects/CinematicVRT/Data/Cine/Herz/10000116/10000117/10000118";
     private int volume = 0;
     private int transferFunction = 0;
     private int environment = 0;
@@ -46,24 +49,23 @@ public class GameManager : MonoBehaviour
         public Quaternion rotation;
     }
 
-    private void Awake()
+    private async void Awake()
     {
+        foreach (ScriptableRendererFeature feature in renderData.rendererFeatures)
+        {
+            if (feature is RenderModeRendererFeature)
+            {
+                renderModeFeature = (RenderModeRendererFeature)feature;
+                renderModeFeature.deltaTrackingSettings.MaxSamples = frameSize + 1;
+                renderModeFeature.SetActive(false);
+            }
+        }
 
 #if !UNITY_EDITOR
         Init();
         Screen.SetResolution(width, height, false);
         Debug.Log("Set screen resolution to " + width + ", " + height);
         Camera.main.fieldOfView = fov;
-        
-        // Set volume, transfer function and environment
-        VolumeBoundingBox volumeBB = FindObjectOfType<VolumeBoundingBox>();
-
-        if (volume >= volumeDatasets.Count)
-            volume = 0;
-        volumeBB.dataset = volumeDatasets[volume];
-        volumeBB.transform.rotation = Quaternion.Euler(rotation);
-        volumeBB.Initialize();
-        volumeBB.GetComponent<OctreeGenerator>().RegenerateOctree();
 
         if (transferFunction >= transferFunctions.Count)
             transferFunction = 0;
@@ -74,6 +76,7 @@ public class GameManager : MonoBehaviour
         FindObjectOfType<EnvironmentManager>().environment = environments[environment];
         FindObjectOfType<EnvironmentManager>().showEnvironment = showEnvironment;
 
+        // Set cutting plane variables
         if(cuttingPlane)
         {
             Shader.EnableKeyword("CUTTING_PLANE");
@@ -92,8 +95,40 @@ public class GameManager : MonoBehaviour
         else
         {
             Shader.DisableKeyword("TRICUBIC_SAMPLING");
-        }    
+        }
+        
+        // Set volume, transfer function and environment
+        VolumeBoundingBox volumeBB = FindObjectOfType<VolumeBoundingBox>();
+
+        if(filePath != null)
+        {
+            DicomImporter importer = new DicomImporter(filePath);
+            VolumeDataset dataset = await importer.ImportAsync();
+            volumeBB.dataset = dataset;
+
+            if (dataset == null)
+            {
+                Debug.LogError("Error importing dataset for file path '" + filePath + "'");
+                Application.Quit();
+            }
+        }
+        else
+        {
+            if (volume >= volumeDatasets.Count)
+                volume = 0;
+
+            volumeBB.dataset = volumeDatasets[volume];
+        }
+
+        volumeBB.transform.rotation = Quaternion.Euler(rotation);
+        volumeBB.Initialize();
+        volumeBB.GetComponent<OctreeGenerator>().RegenerateOctree();    
 #endif
+
+
+        Debug.Log("Start rendering...");
+        renderModeFeature.SetActive(true);
+        renderModeFeature.Create();
     }
 
     private void OnValidate()
@@ -112,16 +147,6 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        foreach (ScriptableRendererFeature feature in renderData.rendererFeatures)
-        {
-            if(feature is RenderModeRendererFeature)
-            {
-                renderModeFeature = (RenderModeRendererFeature)feature;
-                renderModeFeature.Create();
-                renderModeFeature.deltaTrackingSettings.MaxSamples = frameSize + 1;
-            }
-        }
-
         index = 0;
 
         if(cameraConfigs != null)
@@ -145,7 +170,6 @@ public class GameManager : MonoBehaviour
             Debug.Log("Save index " + index + " at frame " + renderModeFeature.GetFrameId());
         }
 #endif
-        Debug.Log(renderModeFeature.GetFrameId());
 
         if (renderModeFeature.GetFrameId() > frameSize)
         {
@@ -182,6 +206,11 @@ public class GameManager : MonoBehaviour
                 }
             }
 
+            if (args.TryGetValue("-dicom", out value))
+            {
+                filePath = value;
+            }
+
             if (args.TryGetValue("-config", out value))
             {
                 InitConfig(value);
@@ -216,6 +245,18 @@ public class GameManager : MonoBehaviour
         {
             Debug.LogError("Invalid length for parameter '" + line[0] + "': " + line.Length + " instead of " + length);
             Application.Quit();
+        }
+    }
+
+    private async void InitVolumeDataset(string filePath)
+    {
+        DicomImporter importer = new DicomImporter(filePath);
+
+        VolumeDataset dataset = await importer.ImportAsync();
+
+        if (dataset == null)
+        {
+            Debug.LogError("Error importing dataset for file path '" + filePath + "'");
         }
     }
 

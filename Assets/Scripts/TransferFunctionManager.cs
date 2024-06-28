@@ -1,4 +1,6 @@
+using JetBrains.Annotations;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 [ExecuteInEditMode]
 public class TransferFunctionManager : MonoBehaviour
@@ -93,5 +95,42 @@ public class TransferFunctionManager : MonoBehaviour
             texture.SetPixel(i, 0, gradient.Evaluate(t));
         }
         texture.Apply(false);
+    }
+
+    public Texture2D GenerateCombinedTexture(float rangeMin, float rangeMax)
+    {
+
+        Texture2D tex = new Texture2D(4096, 8, TextureFormat.ARGB32, false);
+        tex.wrapMode = TextureWrapMode.Clamp;
+        tex.filterMode = FilterMode.Bilinear;
+        
+        for(int row = 0; row < 8; row++)
+        {
+            for (int i = 0; i < 4096; ++i)
+            {
+                float t = (float)i / 4096;
+                float density = Mathf.Lerp(rangeMin, rangeMax, t);
+                float x = Mathf.InverseLerp(transferFunction.MinDensity, transferFunction.MaxDensity, density);
+
+                if(row < 2)
+                {
+                    tex.SetPixel(i, row, transferFunction.Albedo.Evaluate(x));
+                }
+                else if (row < 4)
+                {
+                    tex.SetPixel(i, row, transferFunction.Roughness.Evaluate(x));
+                }
+                else if (row < 6)
+                {
+                    tex.SetPixel(i, row, transferFunction.Metallic.Evaluate(x));
+                }
+                else if (row < 8)
+                {
+                    tex.SetPixel(i, row, transferFunction.Alpha.Evaluate(x));
+                }
+            }
+        }
+        tex.Apply(false);
+        return tex;
     }
 }

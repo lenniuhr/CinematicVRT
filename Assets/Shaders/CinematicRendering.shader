@@ -2,9 +2,10 @@ Shader "Hidden/CinematicRendering"
 {
     Properties
     {
-        _StepSize("Step Size", Float) = 0.004
-        _NormalOffset("Normal Offset", Float) = 1
-        _Threshold("Threshold", Float) = 0.5
+        _SD("SD", Float) = 20
+        _Blend("Blend", Float) = 0.1
+        _IncreaseThreshold("Increase Threshold", Float) = 0.5
+        _DivergeStrength("Diverge Strength", Float) = 0
     }
     SubShader
     {
@@ -36,11 +37,13 @@ Shader "Hidden/CinematicRendering"
         }
         Pass
         {
-            Name "Ray Tracing"
+            Name "Delta Tracking"
 
             HLSLPROGRAM
+            #pragma multi_compile _ TRICUBIC_SAMPLING
+            #pragma multi_compile _ CUTTING_PLANE
             #pragma vertex DefaultVertex
-            #pragma fragment RaytraceFragment
+            #pragma fragment DeltaTrackingFragment
             #include "Assets/Shaders/Library/DefaultVertex.hlsl"
             #include "Assets/Shaders/CinematicRendering.hlsl"
             ENDHLSL

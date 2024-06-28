@@ -158,23 +158,10 @@ float4 RayMarch(float3 position, Ray ray)
         float3 gi = SampleSH(normalWS);
         float3 pbr = PBRLighting(hitInfo.material.color, hitInfo.material.roughness, hitInfo.material.metallic, -ray.dirWS, normalWS, gi);
         
-        output.rgb += pbr * tr * a;
+        //output.rgb += pbr * tr * a;
+        output.rgb += gi * tr * a;
         
         tr *= (1.0 - a);
-        
-        /*if (density > _Threshold)
-        {
-            hitInfo.didHit = true;
-            hitInfo.hitPointOS = position;
-            float3 gradient;
-            float3 normal;
-            SampleGradientAndNormal(uv, gradient, normal);
-            hitInfo.normalOS = normal;
-            
-            output = float4(normal, 0.5);
-            
-            break;
-        }*/
     }
     output.a = 1 - tr;
     return output;

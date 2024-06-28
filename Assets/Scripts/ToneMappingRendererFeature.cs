@@ -65,7 +65,6 @@ public class ToneMappingRendererFeature : ScriptableRendererFeature
 
         public RenderPass(string name, Shader shader, Settings settings) : base()
         {
-            Debug.Log("Create render pass: " + name);
             this.name = name;
             material = new Material(shader);
             material.hideFlags = HideFlags.HideAndDontSave;

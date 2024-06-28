@@ -112,7 +112,7 @@ public class OctreeGenerator : MonoBehaviour
 
         int dim = Mathf.CeilToInt(Mathf.Pow(2, level + 1));
 
-        Debug.Log($"Generate Octree Level {level} ({dim}, {dim}, {dim})...");
+        //Debug.Log($"Generate Octree Level {level} ({dim}, {dim}, {dim})...");
 
         ShaderHelper.Dispatch(computeShader, m_MainKernel, dim, dim, dim);
     }

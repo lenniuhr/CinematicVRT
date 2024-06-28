@@ -12,30 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9ba061e49dc190c489f9c033f61da725, type: 3}
   m_Name: Render Mode
   m_EditorClassIdentifier: 
-  m_Active: 1
-  renderMode: 3
-  renderPassEvent: 300
+  m_Active: 0
+  renderMode: 0
+  renderPassEvent: 350
   settings:
-    StepSize: 0.00112
-    Threshold: 851
-    Color: {r: 0.7688679, g: 0.9798889, b: 1, a: 1}
+    StepSize: 0.001
+    Threshold: 70
   octreeSettings:
     OctreeLevel: 7
-    Threshold: 667
-  cinematicSettings:
-    Threshold: 0.05
-    Accumulate: 0
-    Color: {r: 0.84900004, g: 0.75132555, b: 0.601941, a: 1}
-    SSSRadius: 0.0302
-    DisneyD: 4.67
+    Threshold: 470
   deltaTrackingSettings:
     SamplesPerPixel: 1
-    MaxSamples: 1001
-    Threshold: 0.05
+    MaxSamples: 11524
     Accumulate: 1
-    Color: {r: 1, g: 1, b: 1, a: 1}
-    SigmaT: 1
-    Blend: 0
+    GPhaseFunction: 0.15
     IncreaseThreshold: 0.5
     SD: 15
     DefocusStrength: 0
@@ -53,7 +43,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de0cf10828903f448bff25217498b749, type: 3}
   m_Name: Tone Mapping
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   shader: {fileID: 4800000, guid: 036d0a180520f334c8157e50051e0868, type: 3}
   renderPassEvent: 1000
   settings:

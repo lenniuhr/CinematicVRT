@@ -105,20 +105,20 @@ void IncreaseOctreeLevel(inout int level, inout int3 octreeId, float3 uv, float 
     }
 }
 
-void ReduceOctreeLevel(inout int level, inout int3 octreeId, float threshold)
+void ReduceOctreeLevel(inout uint level, inout uint3 octreeId, float threshold)
 {
-    for (int p = 0; p < 8; p++)
+    for (uint p = 0; p < 8; p++)
     {
         if (level <= 0)
             break;
                     
-        int3 parentId = floor(octreeId / 2);
+        uint3 parentId = floor(octreeId / 2u);
         float parentValue = GetOctreeValueById(level - 1, parentId);
         if (parentValue <= threshold)
         {
             level--;
             octreeId = parentId;
-            parentId = floor(octreeId / 2);
+            parentId = floor(octreeId / 2u);
         }
         else
         {

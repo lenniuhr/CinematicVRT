@@ -53,6 +53,7 @@ public class VolumeBoundingBox : MonoBehaviour
         {
             _initalized = false;
             Debug.LogWarning("No Volume Texture Found!");
+            return;
         }
 
         transform.localScale = dataset.GetScale();
@@ -69,6 +70,11 @@ public class VolumeBoundingBox : MonoBehaviour
 
     private void UpdateShaderVariables()
     {
+        if(dataset == null)
+        {
+            return;
+        }
+
         Shader.SetGlobalFloat("_VolumeClampRadius", ClampRadius);
         Shader.SetGlobalVector("_VolumePosition", transform.position);
         Shader.SetGlobalVector("_VolumeScale", transform.localScale);
@@ -81,6 +87,9 @@ public class VolumeBoundingBox : MonoBehaviour
 
     public Texture3D GetDataTexture()
     {
+        if (dataset == null)
+            return null;
+
         return dataset.dataTex;
     }
 }

@@ -27,7 +27,7 @@ RayTracingMaterial GetMaterial(float4 uv)
     
     float4 normalizedUV = uv / (uv.x + uv.y + uv.z + uv.w);
     
-    material.color = normalizedUV.x * _DensityClasses[0].color + normalizedUV.y * _DensityClasses[1].color + normalizedUV.z * _DensityClasses[2].color;
+    //material.color = normalizedUV.x * _DensityClasses[0].color + normalizedUV.y * _DensityClasses[1].color + normalizedUV.z * _DensityClasses[2].color;
     material.metallic = normalizedUV.x * _DensityClasses[0].metallicness + normalizedUV.y * _DensityClasses[1].metallicness + normalizedUV.z * _DensityClasses[2].metallicness;
     material.roughness = normalizedUV.x * _DensityClasses[0].roughness + normalizedUV.y * _DensityClasses[1].roughness + normalizedUV.z * _DensityClasses[2].roughness;
     material.reflectance = normalizedUV.x * _DensityClasses[0].reflectance + normalizedUV.y * _DensityClasses[1].reflectance + normalizedUV.z * _DensityClasses[2].reflectance;

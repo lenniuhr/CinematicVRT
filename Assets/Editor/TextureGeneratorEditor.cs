@@ -30,5 +30,10 @@ public class TextureGeneratorEditor : Editor
         {
             generator.SaveCTSlice("slice");
         }
+
+        if (GUILayout.Button("Save Transfer Texture"))
+        {
+            generator.SaveTransferTex();
+        }
     }
 }
