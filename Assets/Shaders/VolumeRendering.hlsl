@@ -8,7 +8,6 @@
 #include "Assets/Shaders/Library/BRDF.hlsl"
 #include "Assets/Shaders/Library/Volume.hlsl"
 #include "Assets/Shaders/Library/Tricubic.hlsl"
-#include "Assets/Shaders/Library/Classification.hlsl"
 #include "Assets/Shaders/Library/Octree.hlsl"
 #include "Assets/Shaders/Library/Environment.hlsl"
 #include "Assets/Shaders/Library/TransferFunction.hlsl"
