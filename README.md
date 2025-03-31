@@ -24,7 +24,7 @@ The most important classes are found in the *"Assets/Scripts"* folder. Most of t
 
 **ToneMappingRendererFeature.cs**: Applies a color correction to the final image.
 
-# Shader Overview
+## Shader Overview
 
 The shader files are found in the *"Assets/Shaders"* folder. A lot of code is outsourced to specific files in the *"Assets/Shaders/Library"* folder, and is used in the rendering passes. These files contain most interesting program logic:
 
