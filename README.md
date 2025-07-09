@@ -2,7 +2,7 @@
 
 In this work, a volumetric pathtracing algorithm for data like medical CT scans is presented. It is capable of creating hyperrealistic images with a progressive rendering approach. The images are almost noise-free after a few seconds.
 
-<img src="https://github.com/lenniuhr/CinematicVRT/blob/main/Assets/Textures/Images/manix-rendering.png" width=22% height=22%> <img src="https://github.com/lenniuhr/CinematicVRT/blob/main/Assets/Textures/Images/mecanix-rendering.png" width=22% height=22%> <img src="https://github.com/lenniuhr/CinematicVRT/blob/main/Assets/Textures/Images/mummy.png" width=50% height=50%>
+<img src="https://github.com/lenniuhr/CinematicVRT/blob/main/Assets/Textures/Images/manix-rendering.png" width=22%> <img src="https://github.com/lenniuhr/CinematicVRT/blob/main/Assets/Textures/Images/mecanix-rendering.png" width=22%> <img src="https://github.com/lenniuhr/CinematicVRT/blob/main/Assets/Textures/Images/mummy.png" width=50%>
 
 ## Class Overview
 
